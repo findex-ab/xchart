@@ -1,7 +1,7 @@
 {
-  "name": "my-webpack-project",
+  "name": "xchart",
   "version": "1.0.0",
-  "description": "My webpack project",
+  "description": "chart utility",
   "main": "./lib/xchart/index.js",
   "types": "./lib/xchart/index.d.ts",
   "typesVersions": {
