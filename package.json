@@ -2,7 +2,15 @@
   "name": "my-webpack-project",
   "version": "1.0.0",
   "description": "My webpack project",
-  "main": "index.js",
+  "main": "./lib/xchart/index.js",
+  "types": "./lib/xchart/index.d.ts",
+  "typesVersions": {
+    "xchart": {
+      "index": [
+        "lib/xchart/index.d.ts"
+      ]
+    }
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --mode=production --node-env=production",
@@ -10,10 +18,15 @@
     "build:prod": "webpack --mode=production --node-env=production",
     "watch": "webpack --watch",
     "serve": "webpack serve",
-    "dev": "webpack serve"
+    "dev": "webpack serve",
+    "build:lib": "tsc -p ./tsconfig.lib.json"
+
   },
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "xel": "github:findex-ab/xel"
+  },
   "devDependencies": {
     "autoprefixer": "^10.4.17",
     "css-loader": "^6.10.0",

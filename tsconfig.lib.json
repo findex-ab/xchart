@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "es5",
+    "declaration": true,
+    "outDir": "./lib",
+    "baseUrl": "./src/xchart",
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "Bundler",
+    "sourceMap": true,
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "src/index.tsx",
+    "src/external.d.ts"
+  ]
+}

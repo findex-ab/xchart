@@ -1,12 +1,12 @@
 import { X, mount } from "xel/lib";
 import { xReactive } from 'xel/lib/utils/reactivity/reactive';
-import { DonutSegment } from "./charts/donut/types";
-import { clamp, range } from "./utils/etc";
-import { floatBitsToUint, hashf, hashu32, toUint32 } from "./utils/hash";
-import { VEC2 } from "./utils/vector";
-import { Visd, VisdApp } from "./visd";
-import { ChartData } from "./charts/types";
-import { noise } from "./utils/noise";
+import { DonutSegment } from "./xchart/charts/donut/types";
+import { clamp, range } from "./xchart/utils/etc";
+import { floatBitsToUint, hashf, hashu32, toUint32 } from "./xchart/utils/hash";
+import { VEC2 } from "./xchart/utils/vector";
+import { Visd, VisdApp } from "./xchart/visd";
+import { ChartData } from "./xchart/charts/types";
+import { noise } from "./xchart/utils/noise";
 
 const words = [
   "bitcoin",
