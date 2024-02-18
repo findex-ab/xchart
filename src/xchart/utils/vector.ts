@@ -55,6 +55,10 @@ export class Vector implements IVector {
     return 2;
   }
 
+  luma() {
+    return this.dot(VEC3(0.299, 0.587, 0.114));
+  }
+
   scale(s: number) {
     const count = this.count();
 

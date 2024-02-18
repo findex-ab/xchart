@@ -16,6 +16,7 @@ export declare class Vector implements IVector {
     set y(value: number);
     set z(value: number);
     count(): number;
+    luma(): number;
     scale(s: number): Vector;
     add(b: Vector): Vector;
     sub(b: Vector): Vector;

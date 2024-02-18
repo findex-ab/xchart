@@ -11,12 +11,27 @@ export interface Visd {
     mouse: Vector;
     chartFunction: ChartFunction;
     loopId: number;
+    invMouseDistance: number;
+    running: boolean;
 }
 export interface VisdConfig {
-    resolution: Vector;
+    size?: Vector;
+    scale?: number;
     container?: Element;
+    shadowBlur?: number;
+    shadowAlpha?: number;
+    middleDisplay?: XElement;
 }
 export declare const VisdApp: (cfg: VisdConfig) => {
+    start: (fun: ChartFunction) => void;
+    charts: {
+        donut: (data: ChartData, options: DonutOptions, callback: (segment: DonutSegment) => void) => () => import("../charts/donut/types").DonutChartState;
+        line: (data: ChartData, options?: LineChartOptions) => () => import("../charts/line/types").LineChartState;
+    };
+    setTooltipBody: (body: XElement) => void;
+    canvas: HTMLCanvasElement;
+};
+export declare const VisdApp__backup: (cfg: VisdConfig) => {
     start: (fun: ChartFunction) => void;
     stop: () => void;
     charts: {

@@ -71,31 +71,46 @@ const App = X<{}, AppState>("div", {
   },
   onUpdate: (x) => {
     if (oldVisd) {
-      oldVisd.stop();
+      //oldVisd.stop();
       oldVisd = undefined;
     }
     const visd = oldVisd || VisdApp({
-      resolution: VEC2(1280, 720),
+      size: VEC2(1280, 720),
       container: document.getElementById("plot"),
     });
 
-    visd.stop();
+    //visd.stop();
     oldVisd = visd;
 
-    visd.start(
-      visd.charts.line(generateData(x.state.N), {
-        callback: (value: number) => {
-          visd.setTooltipBody(
-            X("div", {
-              style: {
-                fontSize: "1.5rem",
-              },
-              innerText: `${value.toFixed(3)}`,
-            })
-          );
-        },
-      })
-    );
+
+    visd.start(visd.charts.donut(
+    generateData(10),
+    { thick: 1.35 },
+    (segment: DonutSegment) => {
+
+        visd.setTooltipBody(X<any, any>('div', {
+          style: {
+            fontSize: '2rem'
+          },
+          innerText: `${segment.value}`
+        }))
+    }
+      ));;
+
+//    visd.start(
+//      visd.charts.line(generateData(x.state.N), {
+//        callback: (value: number) => {
+//          visd.setTooltipBody(
+//            X("div", {
+//              style: {
+//                fontSize: "1.5rem",
+//              },
+//              innerText: `${value.toFixed(3)} ASDASD`,
+//            })
+//          );
+//        },
+//      })
+//    );
   },
   render(props, state) {
     const Plot = X("div", { id: "plot" });

@@ -15,6 +15,7 @@ export type DonutSegment = {
 export type DonutOptions = {
     padding?: number;
     thick?: number;
+    drawLabels?: boolean;
 };
 export type DonutChartState = {
     activeSegment?: DonutSegment;
