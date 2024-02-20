@@ -74,4 +74,22 @@ V.insert({
   }),
 });
 
+V.insert({
+  uid: "donut1112312",
+  config: {
+    resolution: VEC2(1280, 720),
+    size: VEC2(1280, 720),
+  },
+  fun: V.charts.donut(generateData(10), {
+    autoFit: true,
+    callback: (instance, value, index) => {
+      instance.setTooltipBody(
+        X("div", {
+          innerText: `${value.toFixed(2)}`,
+        })
+      );
+    },
+  }),
+});
+
 V.start();
