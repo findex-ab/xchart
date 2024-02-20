@@ -23,6 +23,8 @@ import { hashf } from "../utils/hash";
 import { VEC2, Vector } from "../utils/vector";
 import { X, XElement, mount } from "xel/lib/xel";
 
+const INSTANCE_LIMIT = 10;
+
 export interface VisdConfig {
   resolution: Vector;
   size?: Vector;
@@ -132,6 +134,11 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
   }
 
   const update = (visd: Visd) => {
+    if (app.instances.length >= INSTANCE_LIMIT) {
+      console.warn(`Instance limit reached. ${app.instances.length}`);
+      stop();
+      return;
+    }
     for (let i = 0; i < app.instances.length; i++) {
       const instance = app.instances[i];
       
@@ -177,35 +184,44 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     //app.chartFunction()
   };
 
-  const loop = (time: number, visd: Visd) => {
-    if(!app.running) {
+  const stop = () => {
+    app.running = false;
+    if (app.loopId >= 0) {
       cancelAnimationFrame(app.loopId);
-      return;
+      app.loopId = -1;
     }
-    visd.time = time;
-    update(visd);
-    //ctx.beginPath();
-    //ctx.fillStyle = 'black';
-    //ctx.arc(app.mouse.x, app.mouse.y, 4, 0, Math.PI*2.0);
-    //ctx.closePath();
-    //ctx.fill();
-    app.loopId = requestAnimationFrame((time: number) => loop(time, visd));
+  };
 
+  const loop = (time: number, visd: Visd) => {
+    try  {
+      if(!app.running) {
+        cancelAnimationFrame(app.loopId);
+        return;
+      }
+      visd.time = time;
+      update(visd);
+      //ctx.beginPath();
+      //ctx.fillStyle = 'black';
+      //ctx.arc(app.mouse.x, app.mouse.y, 4, 0, Math.PI*2.0);
+      //ctx.closePath();
+      //ctx.fill();
+      app.loopId = requestAnimationFrame((time: number) => loop(time, visd));
+    } catch (e) {
+      console.error(e);
+      stop();
+      return () => {}
+    }
     return () => {
       app.running = false;
       cancelAnimationFrame(app.loopId);
     };
-  };
+  }; 
 
   const start = () => {
     if (app.running)  return;
     
     window.addEventListener("mousemove", (e): void => {
       app.mouse = VEC2(e.clientX, e.clientY);
-      
-      for (const instance of app.instances) {
-        
-      }
     });
 
     app.running = true;
@@ -264,15 +280,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       return (instance: InternalChartInstance) =>
         lineChart(app, instance, data, options);
     },
-  };
-
-  const stop = () => {
-    app.running = false;
-    if (app.loopId >= 0) {
-      cancelAnimationFrame(app.loopId);
-      app.loopId = -1;
-    }
-  };
+  }; 
 
   return { start, stop, insert, charts };
 };

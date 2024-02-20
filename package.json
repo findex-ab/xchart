@@ -1,6 +1,6 @@
 {
   "name": "xchart",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "chart utility",
   "main": "./lib/xchart/index.js",
   "types": "./lib/xchart/index.d.ts",
