@@ -1,10 +1,11 @@
-import { Visd } from "../../visd";
-import { ChartData } from "../types";
+import { InternalChartInstance, Visd } from "../../visd";
+import { ChartData, ChartOptions, ChartRunFunction } from "../types";
 import { LineChartOptions, LineChartState, defaultLineChartOptions } from "./types";
 import { VEC2, VEC3, Vector } from "../../utils/vector";
 import { chunkify, stepForEach } from "../../utils/array";
 import { clamp, lerp, range, smoothstep } from "../../utils/etc";
 import { hexToUint32, nthByte } from "../../utils/hash";
+import { remToPx } from "../../utils/style";
 
 const line = (ctx: CanvasRenderingContext2D, a: Vector, b: Vector) => {
   ctx.beginPath();
@@ -25,23 +26,28 @@ type AxisPoint = {
   value: number;
 }
 
-export const lineChart = (
+
+export const lineChart: ChartRunFunction = (
   app: Visd,
+  instance: InternalChartInstance,
   data: ChartData,
-  options: LineChartOptions = defaultLineChartOptions,
+  options: ChartOptions = defaultLineChartOptions,
 ): LineChartState => {
-  const { ctx } = app;
+  const ctx = instance.ctx;
 
 
-  const yScale = 0.65;
-  const offBottom = 100 / yScale;
-  const w = app.size.x;
-  const h = app.size.y * yScale;
-  const paddingX = options.padding || defaultLineChartOptions.padding;
-  const paddingY = paddingX + 12;
+  const fontSizeRem = 0.76;
+  const yScale = options.autoFit ? 1.0 : 0.65;
+  const offBottom = 0;//100 / yScale;
+  const w = instance.size.x;
+  const h = instance.size.y * yScale;
+  const paddingX = 0;//options.padding || defaultLineChartOptions.padding;
+  const paddingY = 0;//paddingX + 12;
+  const paddingBot = 0;
+  const paddingTop = remToPx(fontSizeRem) * 2;
   
   const colors = options.colors || defaultLineChartOptions.colors;
-  const callback = options.callback || (() => {});
+  //const callback = options.callback || (() => {});
 
   const peak = Math.max(...data.values.map(Math.abs));
   const dip = Math.min(...data.values.map(Math.abs));
@@ -53,7 +59,7 @@ export const lineChart = (
     const nx = i / xlen;
     const ny = v / peak;
     const x = (nx * (w - (yAxisLineLength + paddingX))) + (yAxisLineLength + paddingX);
-    const y = offBottom + ((h - ny * (h - paddingY)) - (paddingY / 2));
+    const y = offBottom + (((paddingBot + h) - ny * (h - paddingTop)));
     return { p: VEC2(x, y), index: i };
   });
 
@@ -80,7 +86,7 @@ export const lineChart = (
       ctx.closePath();
       ctx.stroke();
 
-      ctx.font = `0.76rem sans-serif`;
+      ctx.font = `${fontSizeRem}rem sans-serif`;
       ctx.beginPath();
       ctx.fillText(`${ax.value.toFixed(2)}`, ax.p.x, ax.p.y - 4);
       ctx.closePath();
@@ -95,7 +101,7 @@ export const lineChart = (
     for (let i = 0; i < points.length-2; i+=1) {
       const a = points[i];
       const b = points[i+1]
-      const mouseDist = app.mouse.distance(b.p);
+      const mouseDist = instance.mouse.distance(b.p);
 
       const mix = smoothstep(200.0, 0.0, mouseDist);
       const c = a.p.lerp(b.p, 0.5+0.5*mix);
@@ -156,7 +162,7 @@ export const lineChart = (
 
       let p = b.p;
 
-      const mouseDist = app.mouse.distance(b.p);
+      const mouseDist = instance.mouse.distance(b.p);
       const s = smoothstep(48.0, 0.0, mouseDist);
       const radius = lerp(2.0, 12.0, s);
 
@@ -172,7 +178,7 @@ export const lineChart = (
 
   const drawLabel = (point: Point) => {
     const p = point.p;
-      const mouseDist = app.mouse.distance(p);
+      const mouseDist = instance.mouse.distance(p);
       const s = smoothstep(48.0, 0.0, mouseDist);
 
       const label = data.labels ? data.labels[point.index] : undefined;
@@ -196,7 +202,7 @@ export const lineChart = (
     const step = Math.max(1, (max / 10)-1);
     for (let i = 0; i < max; i+=step) {
       const ni = i / max;
-      const y = offBottom + (((h - ni * (h - paddingY)) - (paddingY / 2))-3);
+      const y = offBottom + ((((paddingBot + h) - ni * (h - paddingTop))));
       result.push({ p: VEC2(0, y), value: (ni*peak) });
     }
 
@@ -213,17 +219,29 @@ export const lineChart = (
 
   const closestPoint = (() => {
     return [...points].sort((a, b) => {
-      const da = a.p.distance(app.mouse);
-      const db = b.p.distance(app.mouse);
+      const da = a.p.distance(instance.mouse);
+      const db = b.p.distance(instance.mouse);
       return da - db;
     })[0];
   })();
 
-  callback(data.values[closestPoint.index]);
+  
   drawPath();
   drawPoints();
   drawLabel(closestPoint);
-  
+
+
+  if (options.callback) {
+    options.callback(instance, data.values[closestPoint.index] || 0, closestPoint.index || 0);
+  }
+
+  //ctx.save();
+  //ctx.fillStyle = 'red';
+  //ctx.beginPath();
+  //ctx.arc(instance.mouse.x, instance.mouse.y, 10, 0, Math.PI*2);
+  //ctx.closePath();
+  //ctx.fill();
+  //ctx.restore();
 
   return {};
 }

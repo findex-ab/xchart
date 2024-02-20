@@ -1,8 +1,6 @@
-export type LineChartOptions = {
-  padding?: number;
-  colors?: string[];
-  callback?: (value: number) => void
-}
+import { ChartOptions } from "../types";
+
+export type LineChartOptions = ChartOptions; 
 
 export const defaultLineChartOptions: LineChartOptions = {
   padding: 0,

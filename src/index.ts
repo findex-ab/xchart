@@ -1,10 +1,9 @@
-import { X, mount } from "xel/lib";
-import { xReactive } from 'xel/lib/utils/reactivity/reactive';
+import { X, mount } from "xel/lib/xel";
 import { DonutSegment } from "./xchart/charts/donut/types";
 import { clamp, range } from "./xchart/utils/etc";
 import { floatBitsToUint, hashf, hashu32, toUint32 } from "./xchart/utils/hash";
 import { VEC2 } from "./xchart/utils/vector";
-import { Visd, VisdApp } from "./xchart/visd";
+import { Visd, VisdApp, VisdApplication } from "./xchart/visd";
 import { ChartData } from "./xchart/charts/types";
 import { noise } from "./xchart/utils/noise";
 
@@ -51,128 +50,28 @@ const generateData = (N: number) => {
   return data;
 };
 
-interface AppState {
-  visd: any;
-  data: ChartData;
-  N: number;
-}
-
-const MIN = 4;
-const MAX = 500;
-const INITIAL = 40;
-
-let oldVisd: any = undefined;
-
-const App = X<{}, AppState>("div", {
-  initialState: {
-    visd: null,
-    data: generateData(8),
-    N: INITIAL,
-  },
-  onUpdate: (x) => {
-    if (oldVisd) {
-      //oldVisd.stop();
-      oldVisd = undefined;
-    }
-    const visd = oldVisd || VisdApp({
-      size: VEC2(1280, 720),
-      container: document.getElementById("plot"),
-    });
-
-    //visd.stop();
-    oldVisd = visd;
-
-
-    visd.start(visd.charts.donut(
-    generateData(10),
-    { thick: 1.35 },
-    (segment: DonutSegment) => {
-
-        visd.setTooltipBody(X<any, any>('div', {
-          style: {
-            fontSize: '2rem'
-          },
-          innerText: `${segment.value}`
-        }))
-    }
-      ));;
-
-//    visd.start(
-//      visd.charts.line(generateData(x.state.N), {
-//        callback: (value: number) => {
-//          visd.setTooltipBody(
-//            X("div", {
-//              style: {
-//                fontSize: "1.5rem",
-//              },
-//              innerText: `${value.toFixed(3)} ASDASD`,
-//            })
-//          );
-//        },
-//      })
-//    );
-  },
-  render(props, state) {
-    const Plot = X("div", { id: "plot" });
-
-
-    const Slider = X<{}, { value: number }>("div", {
-      initialState: {
-        value: state.N
-      },
-      render(props, localState) {
-        //const pEl = xRef<XElement | undefined>(undefined, (xel) => {
-        //  if (!xel) return;
-        //  if (!xel.el) return;
-        //});
-        
-        return () => X("div", {
-          children: [
-            X("p", {
-              innerText: `${localState.value}`,
-         //     ref: pEl
-            }),
-            X("input", {
-              type: "range",
-              value: props.value,
-              min: MIN,
-              max: MAX,
-              oninput: (event: InputEvent & { target: { value: string } }) => {
-                const value = parseFloat(event.target.value);
-                localState.value = Math.round(value);
-                //if (pEl.value && pEl.value.el) {
-                //  const ee =pEl.value.el as HTMLElement;
-                //  ee.innerText = `${localState.value}`;
-                //}
-              },
-              onchange: () => {
-                state.N = localState.value;
-              }
-            }),
-          ],
-        });
-      },
-    });
-
-
-    return X("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "auto auto",
-        width: "100%",
-        height: "100%",
-        padding: "3rem",
-        gap: "1rem",
-        marginTop: '5rem'
-      },
-      children: [
-        Plot.call({}),
-        X("div", {
-          children: [Slider.call({})],
-        }),
-      ],
-    });
-  },
+const V = VisdApp({
+  size: VEC2(1280, 720),
+  resolution: VEC2(1280, 720),
+  container: document.getElementById("app"),
 });
 
-mount(App, { target: document.getElementById("app") });
+V.insert({
+  uid: "linechart123",
+  config: {
+    resolution: VEC2(1280, 720),
+    size: VEC2(1280, 720),
+  },
+  fun: V.charts.line(generateData(10), {
+    autoFit: true,
+    callback: (instance, value, index) => {
+      instance.setTooltipBody(
+        X("div", {
+          innerText: `${value.toFixed(2)}`,
+        })
+      );
+    },
+  }),
+});
+
+V.start();

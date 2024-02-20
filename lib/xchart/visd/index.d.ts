@@ -1,42 +1,48 @@
-import { DonutOptions, DonutSegment } from "../charts/donut/types";
-import { LineChartOptions } from "../charts/line/types";
-import { ChartData, ChartFunction } from "../charts/types";
+import { ChartFunction, ChartInitFunction } from "../charts/types";
+import { VisdTooltipProps } from "../components/tooltip/types";
 import { Vector } from "../utils/vector";
-import { XElement } from "xel";
-export interface Visd {
-    canvas: HTMLCanvasElement;
-    ctx: CanvasRenderingContext2D;
-    size: Vector;
-    time: number;
-    mouse: Vector;
-    chartFunction: ChartFunction;
-    loopId: number;
-    invMouseDistance: number;
-    running: boolean;
-}
+import { XElement } from "xel/lib/xel";
 export interface VisdConfig {
+    resolution: Vector;
     size?: Vector;
     scale?: number;
     container?: Element;
+    tooltipContainer?: Element;
     shadowBlur?: number;
     shadowAlpha?: number;
     middleDisplay?: XElement;
+    minTooltipOpacity?: number;
 }
-export declare const VisdApp: (cfg: VisdConfig) => {
-    start: (fun: ChartFunction) => void;
-    charts: {
-        donut: (data: ChartData, options: DonutOptions, callback: (segment: DonutSegment) => void) => () => import("../charts/donut/types").DonutChartState;
-        line: (data: ChartData, options?: LineChartOptions) => () => import("../charts/line/types").LineChartState;
-    };
-    setTooltipBody: (body: XElement) => void;
+export type ChartInstance = {
+    uid: string;
+    fun: ChartFunction;
+    config: VisdConfig;
+};
+export type InternalChartInstance = ChartInstance & {
     canvas: HTMLCanvasElement;
-};
-export declare const VisdApp__backup: (cfg: VisdConfig) => {
-    start: (fun: ChartFunction) => void;
-    stop: () => void;
-    charts: {
-        donut: (data: ChartData, options: DonutOptions, callback: (segment: DonutSegment) => void) => () => import("../charts/donut/types").DonutChartState;
-        line: (data: ChartData, options?: LineChartOptions) => () => import("../charts/line/types").LineChartState;
-    };
+    ctx: CanvasRenderingContext2D;
+    size: Vector;
+    resolution: Vector;
+    mouse: Vector;
+    invMouseDistance: number;
+    tooltip: XElement<VisdTooltipProps, VisdTooltipProps>;
     setTooltipBody: (body: XElement) => void;
 };
+export interface Visd {
+    time: number;
+    chartFunction: ChartFunction;
+    running?: boolean;
+    loopId: number;
+    instances: InternalChartInstance[];
+    mouse: Vector;
+}
+export type VisdApplication = {
+    start: () => void;
+    stop: () => void;
+    insert: (instance: ChartInstance) => void;
+    charts: {
+        donut: ChartInitFunction;
+        line: ChartInitFunction;
+    };
+};
+export declare const VisdApp: (cfg: VisdConfig) => VisdApplication;

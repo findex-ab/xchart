@@ -5,4 +5,5 @@ export type VisdTooltipProps = {
   body?: XElement;
   position: Vector;
   opacity?: number;
+  uid?: string;
 }

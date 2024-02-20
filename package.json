@@ -19,8 +19,9 @@
     "watch": "webpack --watch",
     "serve": "webpack serve",
     "dev": "webpack serve",
-    "build:lib": "tsc -p ./tsconfig.lib.json"
-
+    "build:lib": "npm run build:exports && tsc -p ./tsconfig.lib.json && npm link",
+    "build:exports": "npx tsx ./scripts/bundle.ts ./src",
+    "build:lib:watch": "watch --filter ./scripts/watchfilter.js 'npm run build:lib' ./src"
   },
   "author": "",
   "license": "ISC",
@@ -37,6 +38,7 @@
     "style-loader": "^3.3.4",
     "ts-loader": "^9.4.4",
     "typescript": "^5.3.3",
+    "watch": "^1.0.2",
     "webpack": "^5.90.1",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^4.15.1",

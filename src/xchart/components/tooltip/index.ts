@@ -11,7 +11,8 @@ const shadowFilter = `drop-shadow(0px 2px 4px rgba(0,0,0, 0.5));`;
 export const Tooltip = X<VisdTooltipProps, VisdTooltipProps>('div', {
   initialState: {
     position: VEC2(0, 0),
-    opacity: 1
+    opacity: 1,
+    uid: 'xchart-tooltip'
   },
   render(props, state, callee): any {
     const minHeight = 8
@@ -25,6 +26,7 @@ export const Tooltip = X<VisdTooltipProps, VisdTooltipProps>('div', {
     const tipHeight = 8
 
     return X('div', {
+      cname: state.uid || props.uid,
       style: {
         filter: shadowFilter,
         position: 'fixed',
@@ -41,6 +43,7 @@ export const Tooltip = X<VisdTooltipProps, VisdTooltipProps>('div', {
       },
       children: [
         X('div', {
+          cname: (state.uid || props.uid || '') + '-sheet',
           stylesheet: {
             padding: '0.25rem',
             position: 'relative',
@@ -53,7 +56,7 @@ export const Tooltip = X<VisdTooltipProps, VisdTooltipProps>('div', {
             background: 'white',
             userSelect: 'none',
             '&:after': {
-              content: '""',
+              content: '',
               display: 'inline-block',
               borderStyle: 'solid',
               borderWidth: `${tipHeight}px ${tipWidth}px 0`,
@@ -64,7 +67,9 @@ export const Tooltip = X<VisdTooltipProps, VisdTooltipProps>('div', {
               left: `${tipWidth * 0.5}px`
             }
           },
-          children: state.body ? [state.body] : []
+          render() {
+            return state.body ? state.body : '';
+          }
         })
       ]
     })
@@ -76,6 +81,7 @@ export const Tooltip = X<VisdTooltipProps, VisdTooltipProps>('div', {
 export const Tooltip__backup = X<VisdTooltipProps, VisdTooltipProps>("div", {
   initialState: {
     position: VEC2(0, 0),
+    body: X('div', {})
   },
   render(props, state, callee) {
     const minHeight = 8;
@@ -128,7 +134,7 @@ export const Tooltip__backup = X<VisdTooltipProps, VisdTooltipProps>("div", {
             },
           },
           render() {
-            return state.body ? state.body : '';
+            return () => 'hello';
           },
           //children: state.body ? [state.body] : [],
         }),
