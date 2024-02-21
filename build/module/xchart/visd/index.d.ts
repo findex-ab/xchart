@@ -1,7 +1,7 @@
 import { ChartFunction, ChartInitFunction } from "../charts/types";
 import { VisdTooltipProps } from "../components/tooltip/types";
 import { Vector } from "../utils/vector";
-import { XElement } from "xel/lib/xel";
+import { XElement } from "xel";
 export interface VisdConfig {
     resolution: Vector;
     size?: Vector;

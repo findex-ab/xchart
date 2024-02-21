@@ -33,8 +33,6 @@ export const donutChart:ChartRunFunction = (
     return angle < -0.5 * Math.PI ? angle + 2 * Math.PI : angle
   }
 
-  alert(93);
-
   const getExactSegment = (segments: DonutSegment[]) => {
     const mouseAngle = getMouseAngle(instance.mouse, center)
     return segments.find(
@@ -85,7 +83,7 @@ export const donutChart:ChartRunFunction = (
 
   const total = sum(data.values)
   let currentAngle = -0.5 * Math.PI
-  const radius = Math.min(ctx.canvas.width, ctx.canvas.height) / 2 - padding
+  const radius = (Math.min(ctx.canvas.width, ctx.canvas.height) / 2 - padding) / window.devicePixelRatio;
 
   const segments: DonutSegment[] = data.values.map((item, i) => {
     const fraction = item / total

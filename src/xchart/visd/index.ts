@@ -1,4 +1,4 @@
-import { xReactive } from "xel/lib/xel/utils/reactivity/reactive";
+import { xReactive } from "xel/build/module/xel/utils/reactivity/reactive";
 import { donutChart } from "../charts/donut";
 import {
   DonutOptions,
@@ -18,10 +18,9 @@ import {
 } from "../charts/types";
 import { Tooltip } from "../components/tooltip";
 import { VisdTooltipProps } from "../components/tooltip/types";
-import { range, smoothstep } from "../utils/etc";
-import { hashf } from "../utils/hash";
+import {  smoothstep } from "../utils/etc";
 import { VEC2, Vector } from "../utils/vector";
-import { X, XElement, mount } from "xel/lib/xel";
+import { X, XElement, mount } from "xel";
 
 const INSTANCE_LIMIT = 10;
 

@@ -1,4 +1,4 @@
-import { X, mount } from "xel/lib/xel";
+import { X, mount } from "xel";
 import { DonutSegment } from "./xchart/charts/donut/types";
 import { clamp, range } from "./xchart/utils/etc";
 import { floatBitsToUint, hashf, hashu32, toUint32 } from "./xchart/utils/hash";
