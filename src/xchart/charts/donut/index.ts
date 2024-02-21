@@ -25,13 +25,15 @@ export const donutChart:ChartRunFunction = (
 
   const padding = options.padding || defaultDonutOptions.padding || 0
   const colors = data.colors || ['#9CA3AF', '#1a56db', '#7e3af2', '#16bdca', '#ff8a4c']
-  const thick = options.thick || 1.5
+  const thick = (options.thick || 1.5) * 0.0;//window.devicePixelRatio;
 
   const getMouseAngle = (mouse: Vector, center: Vector): number => {
     const delta = mouse.sub(center)
     const angle = Math.atan2(delta.y, delta.x)
     return angle < -0.5 * Math.PI ? angle + 2 * Math.PI : angle
   }
+
+  alert(93);
 
   const getExactSegment = (segments: DonutSegment[]) => {
     const mouseAngle = getMouseAngle(instance.mouse, center)
