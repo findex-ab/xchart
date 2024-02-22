@@ -14,3 +14,4 @@ export * from './charts/line/index';
 export * from './charts/line/types';
 export * from './charts/types';
 export * from './constants';
+export { VisdApp } from './visd';

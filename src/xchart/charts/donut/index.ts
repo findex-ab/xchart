@@ -25,7 +25,7 @@ export const donutChart:ChartRunFunction = (
 
   const padding = options.padding || defaultDonutOptions.padding || 0
   const colors = data.colors || ['#9CA3AF', '#1a56db', '#7e3af2', '#16bdca', '#ff8a4c']
-  const thick = (options.thick || 1.5) * 0.0;//window.devicePixelRatio;
+  const thick = (options.thick || 1.5);//window.devicePixelRatio;
 
   const getMouseAngle = (mouse: Vector, center: Vector): number => {
     const delta = mouse.sub(center)
@@ -83,7 +83,7 @@ export const donutChart:ChartRunFunction = (
 
   const total = sum(data.values)
   let currentAngle = -0.5 * Math.PI
-  const radius = (Math.min(ctx.canvas.width, ctx.canvas.height) / 2 - padding) / window.devicePixelRatio;
+  const radius = Math.min(ctx.canvas.width, ctx.canvas.height) / 2 - padding
 
   const segments: DonutSegment[] = data.values.map((item, i) => {
     const fraction = item / total

@@ -1,4 +1,3 @@
-import { xReactive } from "xel/build/module/xel/utils/reactivity/reactive";
 import { donutChart } from "../charts/donut";
 import {
   DonutOptions,
@@ -20,7 +19,7 @@ import { Tooltip } from "../components/tooltip";
 import { VisdTooltipProps } from "../components/tooltip/types";
 import {  smoothstep } from "../utils/etc";
 import { VEC2, Vector } from "../utils/vector";
-import { X, XElement, mount } from "xel";
+import { X, XElement, mount, xReactive } from "xel";
 
 const INSTANCE_LIMIT = 10;
 
@@ -128,7 +127,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
   const updateTooltip = (instance: InternalChartInstance) => {
     const rect = instance.canvas.getBoundingClientRect();
-    instance.tooltip.state.position = instance.mouse.add(VEC2(rect.x, rect.y));
+    instance.tooltip.state.position = app.mouse;//instance.mouse.add(VEC2(rect.x, rect.y));
     instance.tooltip.state.opacity = Math.max(instance.invMouseDistance, instance.config.minTooltipOpacity || 0);
   }
 
@@ -142,7 +141,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       const instance = app.instances[i];
       
       const sizes = computeSizes(
-       instance.config.resolution,// VEC2(instance.canvas.width, instance.canvas.height),
+        instance.config.resolution,// VEC2(instance.canvas.width, instance.canvas.height),
         instance.config.size//VEC2(instance.canvas.width, instance.canvas.height)
       );
 
@@ -150,6 +149,8 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       instance.canvas.height = sizes.resolution.y;
       instance.canvas.style.width = `${sizes.size.x}px`;
       instance.canvas.style.height = `${sizes.size.y}px`;
+      instance.canvas.style.maxWidth = '100%';
+      instance.canvas.style.maxHeight = cfg.size ? `${cfg.size.y}px` : '100%';
       instance.canvas.style.objectFit = "contain";
       instance.size = VEC2(instance.canvas.width, instance.canvas.height);
       instance.resolution = sizes.resolution;
@@ -158,7 +159,12 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       const res = instance.resolution;
       const s = instance.size;
       const rect = instance.canvas.getBoundingClientRect();
-      instance.mouse = VEC2(app.mouse.x - rect.x, app.mouse.y - rect.y);
+
+      const rx = instance.canvas.width / rect.width;
+      const ry = instance.canvas.height / rect.height;
+      
+      instance.mouse = app.mouse.clone();
+      instance.mouse = instance.mouse.sub(VEC2(rect.x, rect.y)).mul(VEC2(rx, ry));
 
       
       //instance.resolution = instance.config.resolution;
@@ -174,7 +180,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       instance.ctx.clearRect(
         0,
         0,
-        ...[app.instances[i].resolution.x, app.instances[i].resolution.y]
+        ...[instance.canvas.width, instance.canvas.height]
       );
 
       updateTooltip(instance);

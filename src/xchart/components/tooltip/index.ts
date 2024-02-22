@@ -19,7 +19,7 @@ export const Tooltip = X<VisdTooltipProps, VisdTooltipProps>('div', {
     const minWidth = 160
 
     const x = state.position.x - 10
-    const y = state.position.y - remToPx(minHeight)
+    const y = state.position.y - remToPx(minHeight * 0.75)
     const ys = `${y}px`
     const xs = `${x}px`
     const tipWidth = 8

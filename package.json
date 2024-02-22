@@ -1,13 +1,13 @@
 {
   "name": "xchart",
-  "version": "2.0.0",
+  "version": "2.0.2",
   "description": "chart library",
   "bin": {
     "xchart": "./bin/xchart"
   },
-  "main": "build/main/xchart/index.js",
-  "typings": "build/main/xchart/index.d.ts",
-  "module": "build/module/xchart/index.js",
+  "main": "build/main/index.js",
+  "module": "build/module/index.js",
+  "typings": "build/main/index.d.ts",
   "repository": "https://github.com/findex-ab/xchart",
   "license": "MIT",
   "scripts": {
