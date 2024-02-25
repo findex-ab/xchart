@@ -1,4 +1,4 @@
-import { InternalChartInstance, Visd } from "../visd";
+import { ChartInstance, Visd } from "../visd";
 
 export type ChartData = {
   values: number[];
@@ -9,13 +9,14 @@ export type ChartData = {
 export type ChartOptions = {
   padding?: number;
   autoFit?: boolean;
+  fitContainer?: boolean;
   thick?: number;
   drawLabels?: boolean;
   colors?: string[];
-  callback?: (instance: InternalChartInstance, value: number, index: number) => void;
+  callback?: (instance: ChartInstance, value: number, index: number) => void;
 };
 
-export type ChartFunction = (instance: InternalChartInstance) => void;
+export type ChartFunction = (instance: ChartInstance) => void;
 export type ChartInitFunction = (
   data: ChartData,
   options: ChartOptions,
@@ -23,7 +24,7 @@ export type ChartInitFunction = (
 
 export type ChartRunFunction = (
   app: Visd,
-  instance: InternalChartInstance,
+  instance: ChartInstance,
   data: ChartData,
   options?: ChartOptions,
 ) => void;

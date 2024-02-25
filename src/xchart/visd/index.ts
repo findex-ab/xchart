@@ -17,14 +17,26 @@ import {
 } from "../charts/types";
 import { Tooltip } from "../components/tooltip";
 import { VisdTooltipProps } from "../components/tooltip/types";
-import {  smoothstep } from "../utils/etc";
+import {  clamp, smoothstep } from "../utils/etc";
 import { VEC2, Vector } from "../utils/vector";
 import { X, XElement, mount, xReactive } from "xel";
 
 const INSTANCE_LIMIT = 10;
 
 export interface VisdConfig {
+  scale?: number;
+  container?: Element;
+  tooltipContainer?: Element;
+  shadowBlur?: number;
+  shadowAlpha?: number;
+  middleDisplay?: XElement;
+  minTooltipOpacity?: number;
+}
+
+export interface VisdInstanceConfig {
   resolution: Vector;
+  fitContainer?: boolean;
+  sizeClamp?: { min: Vector, max: Vector };
   size?: Vector;
   scale?: number;
   container?: Element;
@@ -35,13 +47,19 @@ export interface VisdConfig {
   minTooltipOpacity?: number;
 }
 
+export type ChartInstanceInit = {
+  uid: string;
+  fun: ChartFunction;
+  config: VisdInstanceConfig;
+  active?: boolean;
+};
+
+
 export type ChartInstance = {
   uid: string;
   fun: ChartFunction;
-  config: VisdConfig;
-};
-
-export type InternalChartInstance = ChartInstance & {
+  config: VisdInstanceConfig;
+  active?: boolean;
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   size: Vector;
@@ -50,6 +68,8 @@ export type InternalChartInstance = ChartInstance & {
   invMouseDistance: number;
   tooltip: XElement<VisdTooltipProps, VisdTooltipProps>;
   setTooltipBody: (body: XElement) => void;
+  cancel: () => void;
+  resume: () => void;
 };
 
 export interface Visd {
@@ -57,14 +77,14 @@ export interface Visd {
   chartFunction: ChartFunction;
   running?: boolean;
   loopId: number;
-  instances: InternalChartInstance[];
+  instances: ChartInstance[];
   mouse: Vector;
 }
 
 export type VisdApplication = {
   start: () => void;
   stop: () => void;
-  insert: (instance: ChartInstance) => void;
+  insert: (instance: ChartInstanceInit) => ChartInstance;
   charts: {
     donut: ChartInitFunction;
     line: ChartInitFunction;
@@ -125,7 +145,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
   //mount(tooltip, { target: container });
 
-  const updateTooltip = (instance: InternalChartInstance) => {
+  const updateTooltip = (instance: ChartInstance) => {
     const rect = instance.canvas.getBoundingClientRect();
     instance.tooltip.state.position = app.mouse;//instance.mouse.add(VEC2(rect.x, rect.y));
     instance.tooltip.state.opacity = Math.max(instance.invMouseDistance, instance.config.minTooltipOpacity || 0);
@@ -139,18 +159,43 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     }
     for (let i = 0; i < app.instances.length; i++) {
       const instance = app.instances[i];
+      if (!instance.active) continue;
+
+      let resolution = instance.config.resolution;
+      let size = instance.config.size;
+      
+      if (instance.config.fitContainer && instance.config.container) {
+        const rect = instance.config.container.getBoundingClientRect();
+        //const rect = { width: r.width, height: r.height };
+
+        if (instance.config.sizeClamp) {
+          const {min, max} = instance.config.sizeClamp;
+          rect.width = clamp(rect.width, min.x, max.x);
+          rect.height = clamp(rect.height, min.y, max.y);
+        }
+        
+        size = VEC2(rect.width, rect.height);
+        resolution = VEC2(rect.width, rect.height);
+
+        
+      }
+      
       
       const sizes = computeSizes(
-        instance.config.resolution,// VEC2(instance.canvas.width, instance.canvas.height),
-        instance.config.size//VEC2(instance.canvas.width, instance.canvas.height)
+        resolution,// VEC2(instance.canvas.width, instance.canvas.height),
+        size//VEC2(instance.canvas.width, instance.canvas.height)
       );
 
       instance.canvas.width = sizes.resolution.x;
       instance.canvas.height = sizes.resolution.y;
       instance.canvas.style.width = `${sizes.size.x}px`;
       instance.canvas.style.height = `${sizes.size.y}px`;
+
+      
+      
       instance.canvas.style.maxWidth = '100%';
-      instance.canvas.style.maxHeight = cfg.size ? `${cfg.size.y}px` : '100%';
+      instance.canvas.style.maxHeight = instance.config.size ? `${instance.config.size.y}px` : '100%'; 
+       
       instance.canvas.style.objectFit = "contain";
       instance.size = VEC2(instance.canvas.width, instance.canvas.height);
       instance.resolution = sizes.resolution;
@@ -233,8 +278,11 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     loop(0, app);
   };
 
-  const insert = (instance: ChartInstance) => {
-    if (app.instances.find((inst) => inst.uid === instance.uid)) return;
+  const insert = (instance: ChartInstanceInit): ChartInstance => {
+    const old = app.instances.find((inst) => inst.uid === instance.uid);
+    if (old) {
+      old.cancel();
+    }
 
     const sizes = computeSizes(
       instance.config.resolution,
@@ -256,7 +304,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
     mount(tooltip, { target:  instance.config.tooltipContainer || container });
 
-    const inst: InternalChartInstance = xReactive({
+    const inst: ChartInstance = xReactive({
       ...instance,
       canvas: canvas,
       ctx,
@@ -267,22 +315,33 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       tooltip,
       setTooltipBody: (body: XElement) => {
         tooltip.state.body = body;
+      },
+      active: true,
+      cancel: () => {
+        inst.canvas.remove();
+        inst.active = false;
+        app.instances = app.instances.filter(x => x.uid !== inst.uid);
+      },
+      resume: () => {
+        inst.active = true;
       }
     });
 
     app.instances.push(inst);
+
+    return inst;
   };
 
   const charts = {
     donut: (data: ChartData, options: ChartOptions = defaultDonutOptions) => {
-      return (instance: InternalChartInstance) =>
+      return (instance: ChartInstance) =>
         donutChart(app, instance, data, options);
     },
     line: (
       data: ChartData,
       options: ChartOptions = defaultLineChartOptions
     ) => {
-      return (instance: InternalChartInstance) =>
+      return (instance: ChartInstance) =>
         lineChart(app, instance, data, options);
     },
   }; 

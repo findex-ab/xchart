@@ -3,7 +3,21 @@ import { VisdTooltipProps } from "../components/tooltip/types";
 import { Vector } from "../utils/vector";
 import { XElement } from "xel";
 export interface VisdConfig {
+    scale?: number;
+    container?: Element;
+    tooltipContainer?: Element;
+    shadowBlur?: number;
+    shadowAlpha?: number;
+    middleDisplay?: XElement;
+    minTooltipOpacity?: number;
+}
+export interface VisdInstanceConfig {
     resolution: Vector;
+    fitContainer?: boolean;
+    sizeClamp?: {
+        min: Vector;
+        max: Vector;
+    };
     size?: Vector;
     scale?: number;
     container?: Element;
@@ -13,12 +27,17 @@ export interface VisdConfig {
     middleDisplay?: XElement;
     minTooltipOpacity?: number;
 }
+export type ChartInstanceInit = {
+    uid: string;
+    fun: ChartFunction;
+    config: VisdInstanceConfig;
+    active?: boolean;
+};
 export type ChartInstance = {
     uid: string;
     fun: ChartFunction;
-    config: VisdConfig;
-};
-export type InternalChartInstance = ChartInstance & {
+    config: VisdInstanceConfig;
+    active?: boolean;
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
     size: Vector;
@@ -27,19 +46,21 @@ export type InternalChartInstance = ChartInstance & {
     invMouseDistance: number;
     tooltip: XElement<VisdTooltipProps, VisdTooltipProps>;
     setTooltipBody: (body: XElement) => void;
+    cancel: () => void;
+    resume: () => void;
 };
 export interface Visd {
     time: number;
     chartFunction: ChartFunction;
     running?: boolean;
     loopId: number;
-    instances: InternalChartInstance[];
+    instances: ChartInstance[];
     mouse: Vector;
 }
 export type VisdApplication = {
     start: () => void;
     stop: () => void;
-    insert: (instance: ChartInstance) => void;
+    insert: (instance: ChartInstanceInit) => ChartInstance;
     charts: {
         donut: ChartInitFunction;
         line: ChartInitFunction;

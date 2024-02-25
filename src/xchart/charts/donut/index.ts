@@ -1,4 +1,4 @@
-import { InternalChartInstance, Visd } from "../../visd";
+import { ChartInstance, Visd } from "../../visd";
 import { VEC2, VEC3, Vector } from "../../utils/vector";
 import { DonutChartState, DonutOptions, DonutSegment, defaultDonutOptions } from "./types";
 import { clamp, lerp, sgt, slt, smin, smoothstep, sum } from "../../utils/etc";
@@ -12,7 +12,7 @@ console.log(24);
 
 export const donutChart:ChartRunFunction = (
   app: Visd,
-  instance: InternalChartInstance,
+  instance: ChartInstance,
   data: ChartData,
   options: ChartOptions = defaultDonutOptions,
 ): DonutChartState => {

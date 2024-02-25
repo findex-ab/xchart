@@ -1,4 +1,4 @@
-import { InternalChartInstance, Visd } from "../../visd";
+import { ChartInstance, Visd } from "../../visd";
 import { ChartData, ChartOptions, ChartRunFunction } from "../types";
 import { LineChartOptions, LineChartState, defaultLineChartOptions } from "./types";
 import { VEC2, VEC3, Vector } from "../../utils/vector";
@@ -29,7 +29,7 @@ type AxisPoint = {
 
 export const lineChart: ChartRunFunction = (
   app: Visd,
-  instance: InternalChartInstance,
+  instance: ChartInstance,
   data: ChartData,
   options: ChartOptions = defaultLineChartOptions,
 ): LineChartState => {
@@ -37,7 +37,7 @@ export const lineChart: ChartRunFunction = (
 
 
   const fontSizeRem = 0.76;
-  const yScale = options.autoFit ? 1.0 : 0.65;
+  const yScale = (options.autoFit || options.fitContainer) ? 1.0 : 0.65;
   const offBottom = 0;//100 / yScale;
   const w = instance.size.x;
   const h = instance.size.y * yScale;
