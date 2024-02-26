@@ -38,3 +38,7 @@ export const smax = (a: number, b: number, k: number) => {
 export const range = (n: number): number[] => Array.from(Array(n).keys());
 
 export const sum = (arr: number[]): number => arr.reduce((a, b) => (a + b), 0);
+
+export const avg = (arr: number[]): number => arr.length <= 0 ? 0 : (sum(arr) / arr.length);
+
+export const median = (arr: number[]): number => arr.length <= 0 ? 0 : [...arr].sort((a, b) => a-b)[Math.floor(arr.length/2)];

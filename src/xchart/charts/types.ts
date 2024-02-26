@@ -1,3 +1,4 @@
+import { Range, RangeScalar } from "../types/range";
 import { ChartInstance, Visd } from "../visd";
 
 export type ChartData = {
@@ -6,13 +7,23 @@ export type ChartData = {
   colors?: string[];
 };
 
+export type ChartAxis = {
+  range: Range;
+  format?: (x: RangeScalar) => string;
+}
+
 export type ChartOptions = {
   padding?: number;
   autoFit?: boolean;
   fitContainer?: boolean;
   thick?: number;
+  radius?: number;
   drawLabels?: boolean;
+  drawPoints?: boolean;
+  xAxis?: ChartAxis;
   colors?: string[];
+  smoothPath?: boolean;
+  fontSize?: number | string;
   callback?: (instance: ChartInstance, value: number, index: number) => void;
 };
 

@@ -26,6 +26,7 @@ export interface VisdInstanceConfig {
     shadowAlpha?: number;
     middleDisplay?: XElement;
     minTooltipOpacity?: number;
+    onlyActiveWhenMouseOver?: boolean;
 }
 export type ChartInstanceInit = {
     uid: string;
@@ -45,9 +46,11 @@ export type ChartInstance = {
     mouse: Vector;
     invMouseDistance: number;
     tooltip: XElement<VisdTooltipProps, VisdTooltipProps>;
+    didRender?: boolean;
     setTooltipBody: (body: XElement) => void;
     cancel: () => void;
     resume: () => void;
+    xel: XElement;
 };
 export interface Visd {
     time: number;

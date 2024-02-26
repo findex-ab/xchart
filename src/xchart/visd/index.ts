@@ -17,6 +17,7 @@ import {
 } from "../charts/types";
 import { Tooltip } from "../components/tooltip";
 import { VisdTooltipProps } from "../components/tooltip/types";
+import { AABB, aabbVSPoint2D } from "../utils/aabb";
 import {  clamp, smoothstep } from "../utils/etc";
 import { VEC2, Vector } from "../utils/vector";
 import { X, XElement, mount, xReactive } from "xel";
@@ -45,6 +46,7 @@ export interface VisdInstanceConfig {
   shadowAlpha?: number;
   middleDisplay?: XElement;
   minTooltipOpacity?: number;
+  onlyActiveWhenMouseOver?: boolean;
 }
 
 export type ChartInstanceInit = {
@@ -67,9 +69,11 @@ export type ChartInstance = {
   mouse: Vector;
   invMouseDistance: number;
   tooltip: XElement<VisdTooltipProps, VisdTooltipProps>;
+  didRender?: boolean;
   setTooltipBody: (body: XElement) => void;
   cancel: () => void;
   resume: () => void;
+  xel: XElement;
 };
 
 export interface Visd {
@@ -92,11 +96,6 @@ export type VisdApplication = {
 };
 
 const createApp = (cfg: VisdConfig): VisdApplication => {
-  const { container } = cfg;
-
-  const shadowAlpha = cfg.shadowAlpha || 0;
-  const shadowBlur = cfg.shadowBlur || 0;
-
   const computeSizes = (res: Vector, s: Vector) => {
     const resolution = res.clone();
     const size = s.clone()
@@ -143,13 +142,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     mouse: VEC2(0, 0)
   };
 
-  //mount(tooltip, { target: container });
-
-  const updateTooltip = (instance: ChartInstance) => {
-    const rect = instance.canvas.getBoundingClientRect();
-    instance.tooltip.state.position = app.mouse;//instance.mouse.add(VEC2(rect.x, rect.y));
-    instance.tooltip.state.opacity = Math.max(instance.invMouseDistance, instance.config.minTooltipOpacity || 0);
-  }
+  //mount(tooltip, { target: container }); 
 
   const update = (visd: Visd) => {
     if (app.instances.length >= INSTANCE_LIMIT) {
@@ -159,6 +152,22 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     }
     for (let i = 0; i < app.instances.length; i++) {
       const instance = app.instances[i];
+
+      if (instance.didRender && instance.config.onlyActiveWhenMouseOver) {
+        const rect = instance.canvas.getBoundingClientRect();
+        const bounds: AABB = {
+          min: VEC2(rect.x, rect.y),
+          max: VEC2(rect.x + rect.width, rect.y + rect.height)
+        };
+        if (!aabbVSPoint2D(bounds, app.mouse)) {
+          instance.tooltip.state.opacity = 0;
+          if  (instance.tooltip.el) {
+            (instance.tooltip.el as HTMLElement).style.opacity = '0%';
+          }
+          continue;
+        }
+      }
+
       if (!instance.active) continue;
 
       let resolution = instance.config.resolution;
@@ -228,8 +237,9 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
         ...[instance.canvas.width, instance.canvas.height]
       );
 
-      updateTooltip(instance);
+      
       app.instances[i].fun(app.instances[i]);
+      app.instances[i].didRender = true;
     }
     //app.chartFunction()
   };
@@ -292,9 +302,9 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     const canvas = createCanvas(sizes.resolution, sizes.size);
 
     const container = instance.config.container || cfg.container;
-    if (container) {
-      container.appendChild(canvas);
-    }
+    //if (container) {
+    //  container.appendChild(canvas);
+    //}
 
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("unable to get context");
@@ -302,7 +312,6 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     
     const tooltip: XElement<VisdTooltipProps, VisdTooltipProps> = Tooltip.call({ position: VEC2(app.mouse.x, app.mouse.y), opacity: 1.0, uid: instance.uid }) as XElement<VisdTooltipProps, VisdTooltipProps>;
 
-    mount(tooltip, { target:  instance.config.tooltipContainer || container });
 
     const inst: ChartInstance = xReactive({
       ...instance,
@@ -324,10 +333,23 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       },
       resume: () => {
         inst.active = true;
-      }
+      },
+      xel: (() => {
+        const xel: XElement = X<{ instance: ChartInstance }>('div', {
+          onMount(self) {
+            self.el.appendChild(canvas);
+             mount(tooltip, { target:  instance.config.tooltipContainer || container || (self.el as HTMLElement) });
+            app.instances.push(inst);
+          },
+          render() {
+            return X('div', {  })
+          }
+        });
+
+        return xel;
+      })() 
     });
 
-    app.instances.push(inst);
 
     return inst;
   };

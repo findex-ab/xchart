@@ -83,7 +83,7 @@ export const donutChart:ChartRunFunction = (
 
   const total = sum(data.values)
   let currentAngle = -0.5 * Math.PI
-  const radius = Math.min(ctx.canvas.width, ctx.canvas.height) / 2 - padding
+  const radius = (options.radius ? options.radius : Math.min(ctx.canvas.width, ctx.canvas.height)) / 2 - padding
 
   const segments: DonutSegment[] = data.values.map((item, i) => {
     const fraction = item / total
@@ -222,6 +222,14 @@ export const donutChart:ChartRunFunction = (
   //ctx.fill();
   //ctx.restore();
 
+  const updateTooltip = (instance: ChartInstance) => {
+    const rect = instance.canvas.getBoundingClientRect();
+    instance.tooltip.state.position = app.mouse;//instance.mouse.add(VEC2(rect.x, rect.y));
+    instance.tooltip.state.opacity = Math.max(instance.invMouseDistance, instance.config.minTooltipOpacity || 0);
+  }
+
+  updateTooltip(instance);
+  
   return state
 }
 

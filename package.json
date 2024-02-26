@@ -19,7 +19,8 @@
     "fix:prettier": "prettier \"src/**/*.ts\" --write",
     "fix:lint": "eslint src --ext .ts --fix",
     "test": "run-s build test:*",
-    "watch:build": "tsc -p tsconfig.json -w",
+    "watch:main:build": "tsc -p tsconfig.json -w",
+    "watch:module:build": "tsc -p tsconfig.module.json -w",
     "doc": "run-s doc:html && open-cli build/docs/index.html",
     "doc:html": "typedoc src/ --exclude **/*.spec.ts --target ES6 --mode file --out build/docs",
     "doc:json": "typedoc src/ --exclude **/*.spec.ts --target ES6 --mode file --json build/docs/typedoc.json",
@@ -82,7 +83,9 @@
     "workbox-webpack-plugin": "^7.0.0"
   },
   "dependencies": {
+    "@types/date-fns": "^2.6.0",
     "bson": "^6.3.0",
+    "date-fns": "^3.3.1",
     "superstruct": "^1.0.3",
     "xel": "github:findex-ab/xel"
   }

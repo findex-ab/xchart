@@ -12,7 +12,7 @@ const stylesHandler = isProduction
   : "style-loader";
 
 const config = {
-  entry: "./src/index.ts",
+  entry: "./src/development/index.ts",
   output: {
     path: path.resolve(__dirname, "dist"),
   },
