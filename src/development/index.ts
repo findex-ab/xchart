@@ -99,6 +99,7 @@ const App = X('div', {
         {
           autoFit: false,
           drawLabels: true,
+          drawPoints: true,
           fitContainer: true,
           padding: 0.0003,
           smoothPath: true,

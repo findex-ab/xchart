@@ -46,11 +46,25 @@ export const lineChart: ChartRunFunction = (
   const xAxisLineLength = 35;
   const vh = h - verticalPadding;
   const vw = w - horizontalPadding;
+  const dims = [
+    instance.resolution.x,
+    instance.resolution.y,
+    instance.size.x,
+    instance.size.y,
+    instance.canvas.width,
+    instance.canvas.height,
+  ];
+  const minDim = Math.min(...dims);
+  const maxDim = Math.max(...dims);
+
+  const xAxisItems = [...(options.xAxis ? rangeToArray(options.xAxis.range) : [])];
 
   const colors = options.colors || defaultLineChartOptions.colors;
   //const callback = options.callback || (() => {});
 
   const values = [...data.values].map((v) => Math.max(0, v));
+  const labels = data.labels ? data.labels : values.map(v => v.toFixed(3)); 
+
   const peak = Math.max(...values);
   const mid = median(values);
   const xlen = values.length;
@@ -174,12 +188,14 @@ export const lineChart: ChartRunFunction = (
       const s = smoothstep(48.0, 0.0, mouseDist);
       const radius = lerp(2.0, 12.0, s);
 
+      ctx.globalAlpha = smoothstep((1.0 / (minDim / maxDim))*50, 0.0, mouseDist);
       ctx.fillStyle = colors[i % colors.length];
 
       ctx.beginPath();
       ctx.arc(p.x, p.y, radius, 0.0, Math.PI * 2.0);
       ctx.closePath();
       ctx.fill();
+      ctx.globalAlpha = 1;
     });
     ctx.restore();
   };
@@ -187,13 +203,14 @@ export const lineChart: ChartRunFunction = (
   const drawLabel = (point: Point) => {
     const p = point.p;
     const mouseDist = instance.mouse.distance(p);
-    const s = smoothstep(48.0, 0.0, mouseDist);
+    const s = smoothstep((1.0 / (minDim / maxDim))*50, 0.0, mouseDist);
 
-    const label = data.labels ? data.labels[point.index] : undefined;
+    const label = labels ? labels[clamp(point.index, 0, labels.length)] : undefined;
 
     if (label && s > 0) {
       const fontSize = lerp(1, 2, s);
       ctx.save();
+      ctx.beginPath();
       ctx.fillStyle = `rgba(0, 0, 0, ${s})`;
       ctx.textAlign = 'center';
       ctx.font = `${fontSize}rem sans-serif`;
@@ -221,11 +238,8 @@ export const lineChart: ChartRunFunction = (
   })();
 
   const xAxis: AxisPoint[] = (() => {
-    if (!options.xAxis) return [] as AxisPoint[];
-    const arr = rangeToArray(options.xAxis.range);
-
-    return arr.map((item, i): AxisPoint => {
-      const ni = i / arr.length;
+    return xAxisItems.map((item, i): AxisPoint => {
+      const ni = i / xAxisItems.length;
       const x = ni * (vw - horizontalPadding);
       const y = h - xAxisLineLength;
       return {

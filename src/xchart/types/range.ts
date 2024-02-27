@@ -11,9 +11,12 @@ export type Range = {
   start: RangeScalar;
   end: RangeScalar;
   step?: number;
+  array?: RangeScalar[]
 }
 
 export const rangeToArray = (r: Range) => {
+  if (r.array) return r.array;
+  
   const a = r.start;
   const b = r.end;
 

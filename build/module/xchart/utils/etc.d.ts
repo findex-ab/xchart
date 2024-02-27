@@ -10,3 +10,4 @@ export declare const range: (n: number) => number[];
 export declare const sum: (arr: number[]) => number;
 export declare const avg: (arr: number[]) => number;
 export declare const median: (arr: number[]) => number;
+export declare const remap: (value: number, originalMin: number, originalMax: number, nextMin: number, nextMax: number) => number;

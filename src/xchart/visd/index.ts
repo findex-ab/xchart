@@ -36,6 +36,7 @@ export interface VisdConfig {
 
 export interface VisdInstanceConfig {
   resolution: Vector;
+  aspectRatio?: Vector;
   fitContainer?: boolean;
   sizeClamp?: { min: Vector, max: Vector };
   size?: Vector;
@@ -96,18 +97,35 @@ export type VisdApplication = {
 };
 
 const createApp = (cfg: VisdConfig): VisdApplication => {
-  const computeSizes = (res: Vector, s: Vector) => {
+  const computeSizes = (res: Vector, s: Vector, instanceCfg: VisdInstanceConfig, instance?: ChartInstance) => {
     const resolution = res.clone();
     const size = s.clone()
     
     resolution.x = resolution.x || 500;
     resolution.y = resolution.y || 500;
+
+    
     const ratio = window.devicePixelRatio;
 
     size.x /= ratio;
     size.y /= ratio;
     resolution.x = resolution.x * ratio;
     resolution.y = resolution.y * ratio;
+
+    if (instance && instance.xel && instance.xel.el) {
+      let el = (instance.xel.el.parentElement || instance.xel.el) as HTMLElement;
+
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 1 && rect.height > 1) {
+        size.x = clamp(size.x, instanceCfg.fitContainer ? rect.width : 0, rect.width);
+        size.y = clamp(size.y, instanceCfg.fitContainer ? rect.height : 0, rect.height);
+      }
+    }
+
+    if (instanceCfg.aspectRatio && instanceCfg.aspectRatio.mag() > 0.1) {
+      size.y = size.x / instanceCfg.aspectRatio.x * instanceCfg.aspectRatio.y;
+      resolution.y = resolution.x / instanceCfg.aspectRatio.x * instanceCfg.aspectRatio.y;
+    }
     return { resolution, size };
   };
 
@@ -191,10 +209,15 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       
       
       const sizes = computeSizes(
-        resolution,// VEC2(instance.canvas.width, instance.canvas.height),
-        size//VEC2(instance.canvas.width, instance.canvas.height)
+        resolution,
+        size,
+        instance.config,
+        instance
       );
 
+
+      
+      
       instance.canvas.width = sizes.resolution.x;
       instance.canvas.height = sizes.resolution.y;
       instance.canvas.style.width = `${sizes.size.x}px`;
@@ -202,7 +225,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
       
       
-      instance.canvas.style.maxWidth = '100%';
+      instance.canvas.style.maxWidth = `min(${Math.max(resolution.x, size.x)}px, 100%)`;
       instance.canvas.style.maxHeight = instance.config.size ? `${instance.config.size.y}px` : '100%'; 
        
       instance.canvas.style.objectFit = "contain";
@@ -296,7 +319,8 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
     const sizes = computeSizes(
       instance.config.resolution,
-      instance.config.size
+      instance.config.size,
+      instance.config
     );
 
     const canvas = createCanvas(sizes.resolution, sizes.size);
