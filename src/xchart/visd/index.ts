@@ -125,6 +125,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     if (instanceCfg.aspectRatio && instanceCfg.aspectRatio.mag() > 0.1) {
       size.y = size.x / instanceCfg.aspectRatio.x * instanceCfg.aspectRatio.y;
       resolution.y = resolution.x / instanceCfg.aspectRatio.x * instanceCfg.aspectRatio.y;
+      
     }
     return { resolution, size };
   };
@@ -136,8 +137,8 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     const canvas = document.createElement("canvas");
     canvas.width = resolution.x;
     canvas.height = resolution.y;
-    canvas.style.width = `${size.x}px`;
-    canvas.style.height = `${size.y}px`;
+    canvas.style.width = `100%`;
+    canvas.style.height = `100%`;
     canvas.style.objectFit = "contain";
     //canvas.setAttribute(
     //  "style",
@@ -146,10 +147,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     return canvas;
   };
 
-  //  ctx.imageSmoothingEnabled = true
-  //  ctx.imageSmoothingQuality = 'high'
-  //  ctx.shadowColor = `rgba(0, 0, 0, ${shadowAlpha})`
-  //  ctx.shadowBlur = shadowBlur
+ 
 
   const app: Visd = {
     time: 0,
@@ -181,6 +179,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
           instance.tooltip.state.opacity = 0;
           if  (instance.tooltip.el) {
             (instance.tooltip.el as HTMLElement).style.opacity = '0%';
+            (instance.tooltip.el as HTMLElement).style.pointerEvents = 'none';
           }
           continue;
         }
@@ -220,8 +219,8 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       
       instance.canvas.width = sizes.resolution.x;
       instance.canvas.height = sizes.resolution.y;
-      instance.canvas.style.width = `${sizes.size.x}px`;
-      instance.canvas.style.height = `${sizes.size.y}px`;
+      instance.canvas.style.width = `100%`;
+      instance.canvas.style.height = `100%`;
 
       
       
@@ -252,6 +251,8 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
         app.instances[i].size.y * 0.4,
         app.instances[i].mouse.distance(center)
       );
+
+
       
 
       instance.ctx.clearRect(
@@ -260,6 +261,11 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
         ...[instance.canvas.width, instance.canvas.height]
       );
 
+
+      instance.ctx.imageSmoothingEnabled = true
+      instance.ctx.imageSmoothingQuality = 'high'
+      //instance.ctx.shadowColor = `rgba(0, 0, 0, ${shadowAlpha})`
+      //instance.ctx.shadowBlur = shadowBlur
       
       app.instances[i].fun(app.instances[i]);
       app.instances[i].didRender = true;
@@ -352,6 +358,12 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       active: true,
       cancel: () => {
         inst.canvas.remove();
+        if (inst.xel.el) {
+          inst.xel.el.remove();
+        }
+        if (inst.tooltip.el) {
+          inst.tooltip.el.remove();
+        }
         inst.active = false;
         app.instances = app.instances.filter(x => x.uid !== inst.uid);
       },

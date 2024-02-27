@@ -9,6 +9,8 @@ export type ChartData = {
 
 export type ChartAxis = {
   range: Range;
+  color?: string;
+  font?: string;
   format?: (x: RangeScalar) => string;
 }
 
@@ -20,7 +22,11 @@ export type ChartOptions = {
   radius?: number;
   drawLabels?: boolean;
   drawPoints?: boolean;
+  drawOnlyClosestPoint?: boolean;
+  dynamicSizePoints?: boolean;
+  pointColor?: string;
   xAxis?: ChartAxis;
+  yAxis?: ChartAxis;
   colors?: string[];
   smoothPath?: boolean;
   fontSize?: number | string;

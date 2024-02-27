@@ -137,7 +137,7 @@ const App = X('div', {
         X('div', {
           style: {
             borderStyle: 'solid',
-            borderWidth: '20px',
+            borderWidth: '2px',
             borderColor: 'black',
             width: '640px',
             height: '480px'
