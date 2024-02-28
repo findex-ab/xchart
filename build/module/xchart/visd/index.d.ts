@@ -55,6 +55,8 @@ export type ChartInstance = {
 };
 export interface Visd {
     time: number;
+    deltaTime: number;
+    lastTime: number;
     chartFunction: ChartFunction;
     running?: boolean;
     loopId: number;

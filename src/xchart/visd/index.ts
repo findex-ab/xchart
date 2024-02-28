@@ -79,6 +79,8 @@ export type ChartInstance = {
 
 export interface Visd {
   time: number;
+  deltaTime: number;
+  lastTime: number;
   chartFunction: ChartFunction;
   running?: boolean;
   loopId: number;
@@ -105,12 +107,12 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     resolution.y = resolution.y || 500;
 
     
-    const ratio = window.devicePixelRatio;
+    //const ratio = window.devicePixelRatio;
 
-    size.x /= ratio;
-    size.y /= ratio;
-    resolution.x = resolution.x * ratio;
-    resolution.y = resolution.y * ratio;
+    //size.x /= ratio;
+    //size.y /= ratio;
+    //resolution.x = resolution.x * ratio;
+    //resolution.y = resolution.y * ratio;
 
     if (instance && instance.xel && instance.xel.el) {
       let el = (instance.xel.el.parentElement || instance.xel.el) as HTMLElement;
@@ -137,8 +139,8 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     const canvas = document.createElement("canvas");
     canvas.width = resolution.x;
     canvas.height = resolution.y;
-    canvas.style.width = `100%`;
-    canvas.style.height = `100%`;
+    canvas.style.width = `${size.x}px`;//`100%`;
+    canvas.style.height =  `${size.y}px`;///`100%`;
     canvas.style.objectFit = "contain";
     //canvas.setAttribute(
     //  "style",
@@ -151,6 +153,8 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
   const app: Visd = {
     time: 0,
+    deltaTime: 0,
+    lastTime: 0,
     chartFunction: () => {},
     running: false,
     loopId: -1,
@@ -217,19 +221,28 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
       
       
+      
+      instance.canvas.style.width = `${sizes.size.x}px`;//`100%`;
+      instance.canvas.style.height = `${sizes.size.y}px`;//`100%`;
+
+      if (instance.config.fitContainer && instance.xel && instance.xel.el) {
+        const el = (instance.xel.el.parentElement || instance.xel.el) as HTMLElement;
+
+        const style = getComputedStyle(el);
+        
+        instance.canvas.style.width = style.width;
+        instance.canvas.style.height = style.height;
+      } else {
+      
+        instance.canvas.style.maxWidth = `min(${Math.max(resolution.x, size.x)}px, 100%)`;
+        instance.canvas.style.maxHeight = instance.config.size ? `${instance.config.size.y}px` : '100%'; 
+       
+        instance.size = VEC2(instance.canvas.width, instance.canvas.height);
+        instance.resolution = sizes.resolution;
+      }
+
       instance.canvas.width = sizes.resolution.x;
       instance.canvas.height = sizes.resolution.y;
-      instance.canvas.style.width = `100%`;
-      instance.canvas.style.height = `100%`;
-
-      
-      
-      instance.canvas.style.maxWidth = `min(${Math.max(resolution.x, size.x)}px, 100%)`;
-      instance.canvas.style.maxHeight = instance.config.size ? `${instance.config.size.y}px` : '100%'; 
-       
-      instance.canvas.style.objectFit = "contain";
-      instance.size = VEC2(instance.canvas.width, instance.canvas.height);
-      instance.resolution = sizes.resolution;
       instance.canvas.style.objectFit = "contain";
 
       const res = instance.resolution;
@@ -282,6 +295,9 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
   };
 
   const loop = (time: number, visd: Visd) => {
+    app.deltaTime = (time - app.lastTime) / 1000;
+    app.lastTime = time;
+
     try  {
       if(!app.running) {
         cancelAnimationFrame(app.loopId);
@@ -332,9 +348,6 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     const canvas = createCanvas(sizes.resolution, sizes.size);
 
     const container = instance.config.container || cfg.container;
-    //if (container) {
-    //  container.appendChild(canvas);
-    //}
 
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("unable to get context");
@@ -373,12 +386,10 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       xel: (() => {
         const xel: XElement = X<{ instance: ChartInstance }>('div', {
           onMount(self) {
-            self.el.appendChild(canvas);
-             mount(tooltip, { target:  instance.config.tooltipContainer || container || (self.el as HTMLElement) });
             app.instances.push(inst);
           },
-          render() {
-            return X('div', {  })
+          render(props, state) {
+            return X('div', { children: [ canvas, tooltip ] })
           }
         });
 
@@ -392,15 +403,16 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
   const charts = {
     donut: (data: ChartData, options: ChartOptions = defaultDonutOptions) => {
-      return (instance: ChartInstance) =>
+      return (instance: ChartInstance) => {
         donutChart(app, instance, data, options);
+      }
     },
     line: (
       data: ChartData,
       options: ChartOptions = defaultLineChartOptions
     ) => {
-      return (instance: ChartInstance) =>
-        lineChart(app, instance, data, options);
+      
+      return lineChart(app, data, options);
     },
   }; 
 
@@ -410,5 +422,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 let vapp: VisdApplication | undefined = undefined;
 
 export const VisdApp = (cfg: VisdConfig): VisdApplication => {
-  return (vapp = (vapp || createApp(cfg)));
+  if (vapp) return vapp;
+  vapp = createApp(cfg);
+  return vapp;
 };

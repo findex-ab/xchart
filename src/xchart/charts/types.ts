@@ -39,6 +39,15 @@ export type ChartInitFunction = (
   options: ChartOptions,
 ) => ChartFunction;
 
+
+export type ChartUpdateFunction = (instance: ChartInstance) => void;
+
+export type ChartSetupFunction = (
+  app: Visd,
+  data: ChartData,
+  options?: ChartOptions,
+) => ChartUpdateFunction;
+
 export type ChartRunFunction = (
   app: Visd,
   instance: ChartInstance,

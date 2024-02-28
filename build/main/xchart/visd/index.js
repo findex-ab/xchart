@@ -17,11 +17,11 @@ const createApp = (cfg) => {
         const size = s.clone();
         resolution.x = resolution.x || 500;
         resolution.y = resolution.y || 500;
-        const ratio = window.devicePixelRatio;
-        size.x /= ratio;
-        size.y /= ratio;
-        resolution.x = resolution.x * ratio;
-        resolution.y = resolution.y * ratio;
+        //const ratio = window.devicePixelRatio;
+        //size.x /= ratio;
+        //size.y /= ratio;
+        //resolution.x = resolution.x * ratio;
+        //resolution.y = resolution.y * ratio;
         if (instance && instance.xel && instance.xel.el) {
             let el = (instance.xel.el.parentElement || instance.xel.el);
             const rect = el.getBoundingClientRect();
@@ -40,8 +40,8 @@ const createApp = (cfg) => {
         const canvas = document.createElement("canvas");
         canvas.width = resolution.x;
         canvas.height = resolution.y;
-        canvas.style.width = `100%`;
-        canvas.style.height = `100%`;
+        canvas.style.width = `${size.x}px`; //`100%`;
+        canvas.style.height = `${size.y}px`; ///`100%`;
         canvas.style.objectFit = "contain";
         //canvas.setAttribute(
         //  "style",
@@ -51,6 +51,8 @@ const createApp = (cfg) => {
     };
     const app = {
         time: 0,
+        deltaTime: 0,
+        lastTime: 0,
         chartFunction: () => { },
         running: false,
         loopId: -1,
@@ -97,15 +99,22 @@ const createApp = (cfg) => {
                 resolution = (0, vector_1.VEC2)(rect.width, rect.height);
             }
             const sizes = computeSizes(resolution, size, instance.config, instance);
+            instance.canvas.style.width = `${sizes.size.x}px`; //`100%`;
+            instance.canvas.style.height = `${sizes.size.y}px`; //`100%`;
+            if (instance.config.fitContainer && instance.xel && instance.xel.el) {
+                const el = (instance.xel.el.parentElement || instance.xel.el);
+                const style = getComputedStyle(el);
+                instance.canvas.style.width = style.width;
+                instance.canvas.style.height = style.height;
+            }
+            else {
+                instance.canvas.style.maxWidth = `min(${Math.max(resolution.x, size.x)}px, 100%)`;
+                instance.canvas.style.maxHeight = instance.config.size ? `${instance.config.size.y}px` : '100%';
+                instance.size = (0, vector_1.VEC2)(instance.canvas.width, instance.canvas.height);
+                instance.resolution = sizes.resolution;
+            }
             instance.canvas.width = sizes.resolution.x;
             instance.canvas.height = sizes.resolution.y;
-            instance.canvas.style.width = `100%`;
-            instance.canvas.style.height = `100%`;
-            instance.canvas.style.maxWidth = `min(${Math.max(resolution.x, size.x)}px, 100%)`;
-            instance.canvas.style.maxHeight = instance.config.size ? `${instance.config.size.y}px` : '100%';
-            instance.canvas.style.objectFit = "contain";
-            instance.size = (0, vector_1.VEC2)(instance.canvas.width, instance.canvas.height);
-            instance.resolution = sizes.resolution;
             instance.canvas.style.objectFit = "contain";
             const res = instance.resolution;
             const s = instance.size;
@@ -135,6 +144,8 @@ const createApp = (cfg) => {
         }
     };
     const loop = (time, visd) => {
+        app.deltaTime = (time - app.lastTime) / 1000;
+        app.lastTime = time;
         try {
             if (!app.running) {
                 cancelAnimationFrame(app.loopId);
@@ -176,9 +187,6 @@ const createApp = (cfg) => {
         const sizes = computeSizes(instance.config.resolution, instance.config.size, instance.config);
         const canvas = createCanvas(sizes.resolution, sizes.size);
         const container = instance.config.container || cfg.container;
-        //if (container) {
-        //  container.appendChild(canvas);
-        //}
         const ctx = canvas.getContext("2d");
         if (!ctx)
             throw new Error("unable to get context");
@@ -200,12 +208,10 @@ const createApp = (cfg) => {
             }, xel: (() => {
                 const xel = (0, xel_1.X)('div', {
                     onMount(self) {
-                        self.el.appendChild(canvas);
-                        (0, xel_1.mount)(tooltip, { target: instance.config.tooltipContainer || container || self.el });
                         app.instances.push(inst);
                     },
-                    render() {
-                        return (0, xel_1.X)('div', {});
+                    render(props, state) {
+                        return (0, xel_1.X)('div', { children: [canvas, tooltip] });
                     }
                 });
                 return xel;
@@ -214,16 +220,21 @@ const createApp = (cfg) => {
     };
     const charts = {
         donut: (data, options = types_1.defaultDonutOptions) => {
-            return (instance) => (0, donut_1.donutChart)(app, instance, data, options);
+            return (instance) => {
+                (0, donut_1.donutChart)(app, instance, data, options);
+            };
         },
         line: (data, options = types_2.defaultLineChartOptions) => {
-            return (instance) => (0, line_1.lineChart)(app, instance, data, options);
+            return (0, line_1.lineChart)(app, data, options);
         },
     };
     return { start, stop, insert, charts };
 };
 let vapp = undefined;
 const VisdApp = (cfg) => {
-    return (vapp = (vapp || createApp(cfg)));
+    if (vapp)
+        return vapp;
+    vapp = createApp(cfg);
+    return vapp;
 };
 exports.VisdApp = VisdApp;

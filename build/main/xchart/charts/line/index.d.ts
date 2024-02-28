@@ -1,2 +1,2 @@
-import { ChartRunFunction } from '../types';
-export declare const lineChart: ChartRunFunction;
+import { ChartSetupFunction } from '../types';
+export declare const lineChart: ChartSetupFunction;
