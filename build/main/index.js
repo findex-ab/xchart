@@ -20,4 +20,3 @@ __exportStar(require("./xchart/charts/donut"), exports);
 __exportStar(require("./xchart/charts/line"), exports);
 __exportStar(require("./xchart/charts/types"), exports);
 __exportStar(require("./xchart/utils/vector"), exports);
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmMvaW5kZXgudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7OztBQUFBLHNEQUFvQztBQUNwQyxpREFBK0I7QUFDL0Isd0RBQXNDO0FBQ3RDLHVEQUFxQztBQUNyQyx3REFBc0M7QUFDdEMsd0RBQXNDIn0=
