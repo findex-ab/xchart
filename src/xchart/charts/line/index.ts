@@ -79,16 +79,20 @@ export const lineChart: ChartSetupFunction = (
       const max = Math.max(1, peak); //(offBottom+h)-(paddingY + Yoff);
       const step = Math.max(1, Math.floor(mid / vh) * 2);
       const N = max / step;
+      let y = vh - verticalPadding;
       for (let i = 0; i < N; i++) {
         const ni = i / N;
-        const y = Math.max(verticalPadding, vh - step * (ni * vh)); // - xAxisLineLength;//offBottom + ((((paddingBot + h) - ni * (h - paddingTop))));
+        //const y = Math.max(verticalPadding, vh - step * (ni * vh)); // - xAxisLineLength;//offBottom + ((((paddingBot + h) - ni * (h - paddingTop))));
         if (y <= verticalPadding) break;
 
-        const ny = (step * (ni * vh)) / vh;
-        result.push({ p: VEC2(verticalPadding, y), value: ny * peak });
+        // const ni = (Math.floor(instance.mouse.x) - yAxisLineLength) /(vw - yAxisLineLength);
+        const vp = verticalPadding;
+        const ny = ((h - verticalPadding) - y) / (vh - verticalPadding);//((step * (ni * vh)) / vh);
+        result.push({ p: VEC2(verticalPadding, y), value: ny*peak });
+        y -= step;
       }
 
-      return result.reverse();
+      return result;
     })();
 
     const maxYAxisLength = (() => {
@@ -493,6 +497,7 @@ export const lineChart: ChartSetupFunction = (
 
         if (options.drawOnlyClosestPoint) {
           const p = getMousePointInverse();
+          p.y -= tooltipRect.height
           const pos = tooltipPositionPrev.lerp(p, clamp(app.deltaTime*8.0, 0, 1));
           tooltipPositionPrev = pos;
           instance.tooltip.state.position = pos;
@@ -510,13 +515,19 @@ export const lineChart: ChartSetupFunction = (
       updateTooltip(instance);
 
       if (options.callback) {
-        if (closestPoint) {
+        const pointIndex = getMousePointIndex();
+        const index =  clamp(linePoints[pointIndex].length > 0 ? linePoints[pointIndex][0].index : 0, 0, values.length-1);
+        let value = values[index] || 0;
+
+//        if (closestPoint) {
+//          value = lerp(value, values[clamp(closestPoint.index, 0, values.length-1)], 0.5);
+//        }
+//        
           options.callback(
             instance,
-            values[closestPoint.index] || 0,
-            closestPoint.index || 0,
+            value,
+            index || 0,
           );
-        }
       }
     };
 
