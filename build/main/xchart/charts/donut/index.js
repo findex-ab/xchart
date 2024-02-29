@@ -88,7 +88,7 @@ const donutChart = (app, instance, data, options = types_1.defaultDonutOptions) 
     const hoveredSegment = getHoveredSegment(segments);
     state.activeSegment = hoveredSegment;
     if (hoveredSegment && options.callback && hoveredSegment.value && (0, is_1.isNumber)(hoveredSegment.value)) {
-        options.callback(instance, hoveredSegment.value, hoveredSegment.index);
+        options.callback(instance, 0, hoveredSegment.value, hoveredSegment.index);
     }
     segments.forEach(function (p, i) {
         const { sliceAngle, startAngle, endAngle, angle, color } = p;

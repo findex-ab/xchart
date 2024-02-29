@@ -1,4 +1,5 @@
 import { Range, RangeScalar } from "../types/range";
+import { Vector } from "../utils/vector";
 import { ChartInstance, Visd } from "../visd";
 
 export type ChartData = {
@@ -12,6 +13,41 @@ export type ChartAxis = {
   color?: string;
   font?: string;
   format?: (x: RangeScalar) => string;
+  divisor?: number;
+}
+
+export type ChartPoint = {
+  p: Vector;
+  index: number;
+};
+
+export type ChartAxisPoint = {
+  p: Vector;
+  value: number;
+  label?: string;
+  textWidth: number;
+};
+
+export type ComputedChartAxis = {
+  points: ChartAxisPoint[];
+  config: Partial<ChartAxis>;
+  maxTextWidth: number;
+}
+
+export type ComputedMetrics = {
+  padding: {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  },
+  h: number;
+  w: number;
+  vh: number;
+  vw: number;
+  peak: number;
+  mid: number;
+  font: string;
 }
 
 export type ChartOptions = {
@@ -30,7 +66,7 @@ export type ChartOptions = {
   colors?: string[];
   smoothPath?: boolean;
   fontSize?: number | string;
-  callback?: (instance: ChartInstance, value: number, index: number) => void;
+  callback?: (instance: ChartInstance, key: RangeScalar, value: number, index: number) => void;
 };
 
 export type ChartFunction = (instance: ChartInstance) => void;

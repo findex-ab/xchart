@@ -25,16 +25,17 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rangeToArray = void 0;
 const fns = __importStar(require("date-fns"));
-const date_1 = require("../utils/date");
 const is_1 = require("../utils/is");
 const etc_1 = require("../utils/etc");
 const rangeToArray = (r) => {
     if (r.array)
-        return r.array;
+        return r.array.sort((a, b) => {
+            return fns.compareAsc(a, b);
+        });
     const a = r.start;
     const b = r.end;
     if (fns.isDate(a) && fns.isDate(b)) {
-        return (0, date_1.getDatesBetween)(a, b, r.step);
+        return []; //getDatesBetween(a, b, r.step);
     }
     if ((0, is_1.isNumber)(a) && (0, is_1.isNumber)(b)) {
         if (r.step) {

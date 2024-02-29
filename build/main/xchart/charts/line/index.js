@@ -8,18 +8,25 @@ const hash_1 = require("../../utils/hash");
 const style_1 = require("../../utils/style");
 const range_1 = require("../../types/range");
 const is_1 = require("../../utils/is");
+const utils_1 = require("./utils");
 const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
     let tooltipPosition = app.mouse.clone();
     let tooltipPositionPrev = tooltipPosition.clone();
+    const fontSize = (0, is_1.isString)(options.fontSize)
+        ? options.fontSize
+        : (0, is_1.isNumber)(options.fontSize)
+            ? (0, style_1.pxToRemStr)(options.fontSize)
+            : `0.76rem`;
+    const yAxisFont = options.yAxis && options.yAxis.font
+        ? options.yAxis.font
+        : `${fontSize} sans-serif`;
+    const xAxisFont = options.xAxis && options.xAxis.font
+        ? options.xAxis.font
+        : `${fontSize} sans-serif`;
     return (instance) => {
         const ctx = instance.ctx;
         const GRID_COLOR = 'rgba(0, 0, 0, 0.1)';
-        const verticalPadding = 50;
-        const fontSize = (0, is_1.isString)(options.fontSize)
-            ? options.fontSize
-            : (0, is_1.isNumber)(options.fontSize)
-                ? (0, style_1.pxToRemStr)(options.fontSize)
-                : `0.76rem`;
+        const verticalPadding = 32 + 16;
         //const fontSizeRem = 0.76;
         const w = instance.resolution.x;
         const h = instance.resolution.y;
@@ -44,45 +51,25 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
         const peak = Math.max(...values);
         const mid = (0, etc_1.median)(values);
         const xlen = values.length;
-        const yAxis = (() => {
-            const result = [];
-            const max = Math.max(1, peak); //(offBottom+h)-(paddingY + Yoff);
-            const step = Math.max(1, Math.floor(mid / vh) * 2);
-            const N = max / step;
-            let y = vh - verticalPadding;
-            for (let i = 0; i < N; i++) {
-                const ni = i / N;
-                //const y = Math.max(verticalPadding, vh - step * (ni * vh)); // - xAxisLineLength;//offBottom + ((((paddingBot + h) - ni * (h - paddingTop))));
-                if (y <= verticalPadding)
-                    break;
-                // const ni = (Math.floor(instance.mouse.x) - yAxisLineLength) /(vw - yAxisLineLength);
-                const vp = verticalPadding;
-                const ny = ((h - verticalPadding) - y) / (vh - verticalPadding); //((step * (ni * vh)) / vh);
-                result.push({ p: (0, vector_1.VEC2)(verticalPadding, y), value: ny * peak });
-                y -= step;
-            }
-            return result;
-        })();
-        const maxYAxisLength = (() => {
-            const lengths = yAxis.map((ax) => {
-                ctx.font =
-                    options.yAxis && options.yAxis.font
-                        ? options.yAxis.font
-                        : `${fontSize} sans-serif`;
-                const text = options.yAxis && options.yAxis.format
-                    ? options.yAxis.format(ax.value)
-                    : `${ax.value.toFixed(2)}`;
-                const m = ctx.measureText(text);
-                return m.width;
-            });
-            return Math.max(...lengths);
-        })();
-        const yAxisPad = 16;
-        const yAxisLineLength = maxYAxisLength + yAxisPad;
-        const xAxisLineLength = 35;
+        const metrics = {
+            w: w,
+            h: h,
+            vw: 0,
+            vh: vh,
+            padding: {
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: verticalPadding
+            },
+            peak,
+            mid,
+            font: ''
+        };
+        const yAxis = (0, utils_1.computeYAxis)(app, data, values, ctx, options, Object.assign(Object.assign({}, metrics), { font: yAxisFont }));
+        const yAxisLineLength = yAxis.maxTextWidth; //maxYAxisLength + yAxisPad;
         const horizontalPadding = 0;
-        const subtracted = horizontalPadding + yAxisLineLength / 2;
-        const vw = w - 32; //subtracted;
+        const vw = w - verticalPadding;
         const points = values.map((v, i) => {
             const nx = i / xlen;
             const ny = v / (peak + (verticalPadding / vh) * peak);
@@ -109,6 +96,11 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             }
             return result;
         })();
+        const pointsToDraw = [
+            [points[0], points[0]],
+            ...linePoints,
+            [points[points.length - 1], points[points.length - 1]],
+        ];
         const drawSmoothPath = () => {
             if (linePoints.length <= 0)
                 return;
@@ -164,11 +156,6 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
                 ctx.restore();
             }
         };
-        const pointsToDraw = [
-            [points[0], points[0]],
-            ...linePoints,
-            [points[points.length - 1], points[points.length - 1]],
-        ];
         const drawPoints = (pointsToDraw) => {
             ctx.save();
             pointsToDraw.forEach(([a, b], i) => {
@@ -194,20 +181,24 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
         const getMousePointIndex = () => {
             const ni = (Math.floor(instance.mouse.x) - yAxisLineLength) /
                 (vw - yAxisLineLength);
-            return (0, etc_1.clamp)(Math.round(ni * (linePoints.length - 1)), 0, linePoints.length - 1);
+            return (0, etc_1.clamp)(Math.round(ni * (points.length - 1)), 0, points.length - 1);
         };
         const getMousePoint = () => {
             const mousex = Math.floor(instance.mouse.x);
             const index = getMousePointIndex();
-            if (!linePoints[index] || linePoints[index].length <= 0)
-                return (0, vector_1.VEC2)(0, 0);
-            const y = Math.abs(linePoints[index][1].p.y);
-            const x = (0, etc_1.lerp)((0, etc_1.lerp)(linePoints[index][0].p.x, linePoints[index][1].p.x, 0.5), mousex, 0.5);
-            return (0, vector_1.VEC2)(x, y);
+            //if (!linePoints[index] || linePoints[index].length <= 1)
+            //  return [{ p: VEC2(0, 0), index:0 }, { p: VEC2(0, 0), index:0 }];
+            // const y = Math.abs(linePoints[index][1].p.y);
+            // const x = lerp(
+            //   lerp(linePoints[index][0].p.x, linePoints[index][1].p.x, 0.5),
+            //   mousex,
+            //   0.5,
+            // );
+            return [points[index], points[index]];
         };
         const getMousePointInverse = () => {
             const rect = instance.canvas.getBoundingClientRect();
-            const p = getMousePoint();
+            const p = getMousePoint()[0].p;
             const inv = p.add((0, vector_1.VEC2)(rect.x, rect.y));
             inv.x = app.mouse.x;
             inv.y = Math.min(inv.y, app.mouse.y);
@@ -218,11 +209,11 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
                 return;
             ctx.save();
             let radius = 6.0;
-            const p = getMousePoint();
+            const p = getMousePoint()[0];
             ctx.globalAlpha = 1.0;
             ctx.fillStyle = options.pointColor || colors[0] || 'black';
             ctx.beginPath();
-            ctx.arc(p.x, p.y, radius, 0.0, Math.PI * 2.0);
+            ctx.arc(p.p.x, p.p.y, radius, 0.0, Math.PI * 2.0);
             ctx.closePath();
             ctx.fill();
             ctx.restore();
@@ -247,18 +238,7 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
                 ctx.restore();
             }
         };
-        const xAxis = (() => {
-            return xAxisItems.map((item, i) => {
-                const ni = i / xAxisItems.length;
-                const x = ni * (vw - (horizontalPadding + yAxisLineLength)) + yAxisLineLength;
-                const y = h - xAxisLineLength;
-                return {
-                    p: (0, vector_1.VEC2)(x, y),
-                    value: ni,
-                    label: options.xAxis.format ? options.xAxis.format(item) : `${item}`,
-                };
-            });
-        })();
+        const xAxis = (0, utils_1.computeXAxis)(app, data, ctx, options, Object.assign(Object.assign({}, metrics), { vw: w - yAxis.maxTextWidth, padding: Object.assign(Object.assign({}, metrics.padding), { left: yAxis.maxTextWidth, bottom: 24 }) }));
         const closestPoint = (() => {
             return [...points].sort((a, b) => {
                 const da = a.p.distance(instance.mouse);
@@ -271,8 +251,8 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
                 ctx.save();
                 ctx.strokeStyle = 'black';
                 ctx.fillStyle = 'black';
-                for (let i = 0; i < yAxis.length; i++) {
-                    const ax = yAxis[i];
+                for (let i = 0; i < yAxis.points.length; i++) {
+                    const ax = yAxis.points[i];
                     ctx.strokeStyle = GRID_COLOR;
                     ctx.lineWidth = 1;
                     ctx.beginPath();
@@ -290,10 +270,7 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
                         options.yAxis && options.yAxis.color
                             ? options.yAxis.color
                             : 'black';
-                    ctx.font =
-                        options.yAxis && options.yAxis.font
-                            ? options.yAxis.font
-                            : `${fontSize} sans-serif`;
+                    ctx.font = yAxisFont;
                     ctx.beginPath();
                     const text = options.yAxis && options.yAxis.format
                         ? options.yAxis.format(ax.value)
@@ -307,18 +284,13 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
                 ctx.save();
                 ctx.strokeStyle = 'black';
                 ctx.fillStyle = 'black';
-                for (let i = 0; i < xAxis.length; i++) {
-                    if (!rotate && i % 2 != 0)
-                        continue;
-                    const ax = xAxis[i];
-                    const text = `${ax.label ? ax.label : ax.value.toFixed(2)}`;
-                    ctx.font =
-                        options.xAxis && options.xAxis.font
-                            ? options.xAxis.font
-                            : `${fontSize} sans-serif`;
+                for (let i = 0; i < xAxis.points.length; i++) {
+                    //if (!rotate && i % 2 != 0) continue;
+                    const ax = xAxis.points[i];
+                    const text = ax.label || '';
+                    ctx.font = xAxisFont;
                     ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
                     ctx.lineWidth = 1;
-                    const m = ctx.measureText(text);
                     const x = ax.p.x;
                     const y = ax.p.y + (rotate ? 0 : 16);
                     ctx.beginPath();
@@ -332,8 +304,8 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
                             : 'black';
                     if (rotate) {
                         ctx.beginPath();
-                        ctx.translate(yAxisLineLength / 2 + m.width / 2 + 2 * horizontalPadding, 0);
-                        ctx.translate(x - m.width, y);
+                        ctx.translate(yAxisLineLength / 2 + ax.textWidth / 2 + 2 * horizontalPadding, 0);
+                        ctx.translate(x - ax.textWidth, y);
                         ctx.rotate((Math.PI / 180.0) * 30);
                         ctx.fillText(text, 0, 0);
                         ctx.closePath();
@@ -349,15 +321,6 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             };
             const drawCursor = () => {
                 const mouse = instance.mouse;
-                ctx.save();
-                ctx.strokeStyle = GRID_COLOR;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(horizontalPadding, mouse.y);
-                ctx.lineTo(vw, mouse.y);
-                ctx.closePath();
-                ctx.stroke();
-                ctx.restore();
                 ctx.save();
                 ctx.strokeStyle = GRID_COLOR;
                 ctx.lineWidth = 2;
@@ -411,13 +374,16 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             updateTooltip(instance);
             if (options.callback) {
                 const pointIndex = getMousePointIndex();
-                const index = (0, etc_1.clamp)(linePoints[pointIndex].length > 0 ? linePoints[pointIndex][0].index : 0, 0, values.length - 1);
-                let value = values[index] || 0;
+                const mousePoint = getMousePoint()[0];
+                const index = (0, etc_1.clamp)(mousePoint.index, 0, values.length);
+                //const index =  clamp(linePoints[pointIndex].length > 0 ? linePoints[pointIndex][0].index : 0, 0, values.length-1);
+                const value = values[index];
+                const xIndex = (0, etc_1.clamp)(Math.ceil((index / values.length) * (xAxisItems.length - 1)), 0, xAxisItems.length - 1);
                 //        if (closestPoint) {
                 //          value = lerp(value, values[clamp(closestPoint.index, 0, values.length-1)], 0.5);
                 //        }
                 //        
-                options.callback(instance, value, index || 0);
+                options.callback(instance, xAxisItems[(0, etc_1.clamp)(xIndex, 0, xAxisItems.length - 1)], value, index);
             }
         };
         update();

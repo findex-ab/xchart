@@ -115,7 +115,7 @@ export const donutChart:ChartRunFunction = (
   state.activeSegment = hoveredSegment
 
   if (hoveredSegment && options.callback && hoveredSegment.value && isNumber(hoveredSegment.value)) {
-    options.callback(instance, hoveredSegment.value, hoveredSegment.index);
+    options.callback(instance, 0, hoveredSegment.value, hoveredSegment.index);
   }
 
 

@@ -1,14 +1,15 @@
 import * as fns from 'date-fns';
-import { getDatesBetween } from '../utils/date';
 import { isNumber } from '../utils/is';
 import { range } from '../utils/etc';
 export const rangeToArray = (r) => {
     if (r.array)
-        return r.array;
+        return r.array.sort((a, b) => {
+            return fns.compareAsc(a, b);
+        });
     const a = r.start;
     const b = r.end;
     if (fns.isDate(a) && fns.isDate(b)) {
-        return getDatesBetween(a, b, r.step);
+        return []; //getDatesBetween(a, b, r.step);
     }
     if (isNumber(a) && isNumber(b)) {
         if (r.step) {

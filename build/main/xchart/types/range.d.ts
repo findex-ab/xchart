@@ -5,4 +5,4 @@ export type Range = {
     step?: number;
     array?: RangeScalar[];
 };
-export declare const rangeToArray: (r: Range) => any[];
+export declare const rangeToArray: (r: Range) => RangeScalar[];

@@ -15,13 +15,15 @@ export type Range = {
 }
 
 export const rangeToArray = (r: Range) => {
-  if (r.array) return r.array;
+  if (r.array) return r.array.sort((a, b) => {
+    return fns.compareAsc(a, b);
+  });
   
   const a = r.start;
   const b = r.end;
 
   if (fns.isDate(a) && fns.isDate(b)) {
-    return getDatesBetween(a, b, r.step);
+    return [];//getDatesBetween(a, b, r.step);
   }
 
   if (isNumber(a) && isNumber(b)) {

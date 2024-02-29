@@ -1,10 +1,13 @@
 import { ChartInstance, Visd } from '../../visd';
 import {
+    ChartAxisPoint,
   ChartData,
   ChartOptions,
+  ChartPoint,
   ChartRunFunction,
   ChartSetupFunction,
   ChartUpdateFunction,
+  ComputedMetrics,
 } from '../types';
 import { LineChartState, defaultLineChartOptions } from './types';
 import { VEC2, VEC3, Vector } from '../../utils/vector';
@@ -13,17 +16,9 @@ import { hexToUint32, nthByte } from '../../utils/hash';
 import { pxToRemStr } from '../../utils/style';
 import { rangeToArray } from '../../types/range';
 import { isNumber, isString } from '../../utils/is';
+import { computeXAxis, computeYAxis } from './utils';
 
-type Point = {
-  p: Vector;
-  index: number;
-};
 
-type AxisPoint = {
-  p: Vector;
-  value: number;
-  label?: string;
-};
 
 export const lineChart: ChartSetupFunction = (
   app: Visd,
@@ -33,17 +28,29 @@ export const lineChart: ChartSetupFunction = (
 
   let tooltipPosition = app.mouse.clone();
   let tooltipPositionPrev = tooltipPosition.clone();
+
+  const fontSize = isString(options.fontSize)
+      ? options.fontSize
+      : isNumber(options.fontSize)
+        ? pxToRemStr(options.fontSize)
+        : `0.76rem`;
+
+  const yAxisFont = 
+          options.yAxis && options.yAxis.font
+            ? options.yAxis.font
+          : `${fontSize} sans-serif`;
+
+  const xAxisFont = 
+            options.xAxis && options.xAxis.font
+              ? options.xAxis.font
+              : `${fontSize} sans-serif`;
   
   return (instance: ChartInstance) => {
     const ctx = instance.ctx;
 
     const GRID_COLOR = 'rgba(0, 0, 0, 0.1)';
-    const verticalPadding = 50;
-    const fontSize = isString(options.fontSize)
-      ? options.fontSize
-      : isNumber(options.fontSize)
-        ? pxToRemStr(options.fontSize)
-        : `0.76rem`;
+    const verticalPadding = 32 + 16;
+    
     //const fontSizeRem = 0.76;
 
     const w = instance.resolution.x;
@@ -74,50 +81,33 @@ export const lineChart: ChartSetupFunction = (
     const mid = median(values);
     const xlen = values.length;
 
-    const yAxis = (() => {
-      const result: AxisPoint[] = [];
-      const max = Math.max(1, peak); //(offBottom+h)-(paddingY + Yoff);
-      const step = Math.max(1, Math.floor(mid / vh) * 2);
-      const N = max / step;
-      let y = vh - verticalPadding;
-      for (let i = 0; i < N; i++) {
-        const ni = i / N;
-        //const y = Math.max(verticalPadding, vh - step * (ni * vh)); // - xAxisLineLength;//offBottom + ((((paddingBot + h) - ni * (h - paddingTop))));
-        if (y <= verticalPadding) break;
+    const metrics: ComputedMetrics = {
+      w: w,
+      h: h,
+      vw: 0,
+      vh: vh,
+      padding: {
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: verticalPadding
+      },
+      peak,
+      mid,
+      font: ''
+    }
 
-        // const ni = (Math.floor(instance.mouse.x) - yAxisLineLength) /(vw - yAxisLineLength);
-        const vp = verticalPadding;
-        const ny = ((h - verticalPadding) - y) / (vh - verticalPadding);//((step * (ni * vh)) / vh);
-        result.push({ p: VEC2(verticalPadding, y), value: ny*peak });
-        y -= step;
-      }
-
-      return result;
-    })();
-
-    const maxYAxisLength = (() => {
-      const lengths = yAxis.map((ax) => {
-        ctx.font =
-          options.yAxis && options.yAxis.font
-            ? options.yAxis.font
-            : `${fontSize} sans-serif`;
-        const text =
-          options.yAxis && options.yAxis.format
-            ? options.yAxis.format(ax.value)
-            : `${ax.value.toFixed(2)}`;
-        const m = ctx.measureText(text);
-        return m.width;
-      });
-
-      return Math.max(...lengths);
-    })();
-
-    const yAxisPad = 16;
-    const yAxisLineLength = maxYAxisLength + yAxisPad;
-    const xAxisLineLength = 35;
+    const yAxis = computeYAxis(
+      app,
+      data,
+      values,
+      ctx,
+      options,
+      {...metrics, font: yAxisFont}
+    );
+    const yAxisLineLength = yAxis.maxTextWidth;//maxYAxisLength + yAxisPad;
     const horizontalPadding = 0;
-    const subtracted = horizontalPadding + yAxisLineLength / 2;
-    const vw = w - 32; //subtracted;
+    const vw = w - verticalPadding; 
 
     const points = values.map((v, i) => {
       const nx = i / xlen;
@@ -127,9 +117,9 @@ export const lineChart: ChartSetupFunction = (
       return { p: VEC2(x, y), index: i };
     });
 
-    const linePoints = (() => {
+    const linePoints: Array<Array<ChartPoint>> = (() => {
       if (points.length <= 0) return [];
-      const result: Array<Array<Point>> = [];
+      const result: Array<Array<ChartPoint>> = [];
       for (let i = 0; i < points.length - 2; i += 1) {
         const a = points[i];
         const b = points[clamp(i + 1, 0, points.length - 1)];
@@ -146,6 +136,12 @@ export const lineChart: ChartSetupFunction = (
       }
       return result;
     })();
+
+    const pointsToDraw = [
+      [points[0], points[0]],
+      ...linePoints,
+      [points[points.length - 1], points[points.length - 1]],
+    ];
 
     const drawSmoothPath = () => {
       if (linePoints.length <= 0) return;
@@ -218,13 +214,9 @@ export const lineChart: ChartSetupFunction = (
       }
     };
 
-    const pointsToDraw = [
-      [points[0], points[0]],
-      ...linePoints,
-      [points[points.length - 1], points[points.length - 1]],
-    ];
+    
 
-    const drawPoints = (pointsToDraw: Array<Point[]>) => {
+    const drawPoints = (pointsToDraw: Array<ChartPoint[]>) => {
       ctx.save();
       pointsToDraw.forEach(([a, b], i) => {
         let p = b.p;
@@ -260,31 +252,31 @@ export const lineChart: ChartSetupFunction = (
         (Math.floor(instance.mouse.x) - yAxisLineLength) /
         (vw - yAxisLineLength);
       return clamp(
-        Math.round(ni * (linePoints.length - 1)),
+        Math.round(ni * (points.length - 1)),
         0,
-        linePoints.length - 1,
+        points.length - 1,
       );
     };
 
-    const getMousePoint = () => {
+    const getMousePoint = (): [ChartPoint, ChartPoint] => {
       const mousex = Math.floor(instance.mouse.x);
       const index = getMousePointIndex();
-      if (!linePoints[index] || linePoints[index].length <= 0)
-        return VEC2(0, 0);
+      //if (!linePoints[index] || linePoints[index].length <= 1)
+      //  return [{ p: VEC2(0, 0), index:0 }, { p: VEC2(0, 0), index:0 }];
 
-      const y = Math.abs(linePoints[index][1].p.y);
-      const x = lerp(
-        lerp(linePoints[index][0].p.x, linePoints[index][1].p.x, 0.5),
-        mousex,
-        0.5,
-      );
+     // const y = Math.abs(linePoints[index][1].p.y);
+     // const x = lerp(
+     //   lerp(linePoints[index][0].p.x, linePoints[index][1].p.x, 0.5),
+     //   mousex,
+     //   0.5,
+     // );
 
-      return VEC2(x, y);
+      return [points[index], points[index]];
     };
 
     const getMousePointInverse = () => {
       const rect = instance.canvas.getBoundingClientRect();
-      const p = getMousePoint();
+      const p = getMousePoint()[0].p;
       const inv = p.add(VEC2(rect.x, rect.y));
       inv.x = app.mouse.x;
       inv.y = Math.min(inv.y, app.mouse.y);
@@ -295,18 +287,18 @@ export const lineChart: ChartSetupFunction = (
       if (linePoints.length <= 1) return;
       ctx.save();
       let radius = 6.0;
-      const p = getMousePoint();
+      const p = getMousePoint()[0];
       ctx.globalAlpha = 1.0;
       ctx.fillStyle = options.pointColor || colors[0] || 'black';
       ctx.beginPath();
-      ctx.arc(p.x, p.y, radius, 0.0, Math.PI * 2.0);
+      ctx.arc(p.p.x, p.p.y, radius, 0.0, Math.PI * 2.0);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
       ctx.globalAlpha = 1;
     };
 
-    const drawLabel = (point: Point) => {
+    const drawLabel = (point: ChartPoint) => {
       const p = point.p;
       const mouseDist = instance.mouse.distance(p);
       const s = smoothstep((1.0 / (minDim / maxDim)) * 50, 0.0, mouseDist);
@@ -328,19 +320,21 @@ export const lineChart: ChartSetupFunction = (
       }
     };
 
-    const xAxis: AxisPoint[] = (() => {
-      return xAxisItems.map((item, i): AxisPoint => {
-        const ni = i / xAxisItems.length;
-        const x =
-          ni * (vw - (horizontalPadding + yAxisLineLength)) + yAxisLineLength;
-        const y = h - xAxisLineLength;
-        return {
-          p: VEC2(x, y),
-          value: ni,
-          label: options.xAxis.format ? options.xAxis.format(item) : `${item}`,
-        };
-      });
-    })();
+    const xAxis = computeXAxis(
+      app,
+      data,
+      ctx,
+      options,
+      {
+        ...metrics,
+        vw: w - yAxis.maxTextWidth,
+        padding: {
+          ...metrics.padding,
+          left: yAxis.maxTextWidth,
+          bottom: 24
+        }
+      }
+    );
 
     const closestPoint = (() => {
       return [...points].sort((a, b) => {
@@ -355,8 +349,8 @@ export const lineChart: ChartSetupFunction = (
         ctx.save();
         ctx.strokeStyle = 'black';
         ctx.fillStyle = 'black';
-        for (let i = 0; i < yAxis.length; i++) {
-          const ax = yAxis[i];
+        for (let i = 0; i < yAxis.points.length; i++) {
+          const ax = yAxis.points[i];
           ctx.strokeStyle = GRID_COLOR;
           ctx.lineWidth = 1;
           ctx.beginPath();
@@ -376,10 +370,7 @@ export const lineChart: ChartSetupFunction = (
             options.yAxis && options.yAxis.color
               ? options.yAxis.color
               : 'black';
-          ctx.font =
-            options.yAxis && options.yAxis.font
-              ? options.yAxis.font
-              : `${fontSize} sans-serif`;
+          ctx.font = yAxisFont;
           ctx.beginPath();
 
           const text =
@@ -397,17 +388,13 @@ export const lineChart: ChartSetupFunction = (
         ctx.save();
         ctx.strokeStyle = 'black';
         ctx.fillStyle = 'black';
-        for (let i = 0; i < xAxis.length; i++) {
-          if (!rotate && i % 2 != 0) continue;
-          const ax = xAxis[i];
-          const text = `${ax.label ? ax.label : ax.value.toFixed(2)}`;
-          ctx.font =
-            options.xAxis && options.xAxis.font
-              ? options.xAxis.font
-              : `${fontSize} sans-serif`;
+        for (let i = 0; i < xAxis.points.length; i++) {
+          //if (!rotate && i % 2 != 0) continue;
+          const ax = xAxis.points[i];
+          const text = ax.label || ''; 
+          ctx.font = xAxisFont;
           ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
           ctx.lineWidth = 1;
-          const m = ctx.measureText(text);
 
           const x = ax.p.x;
           const y = ax.p.y + (rotate ? 0 : 16);
@@ -425,10 +412,10 @@ export const lineChart: ChartSetupFunction = (
           if (rotate) {
             ctx.beginPath();
             ctx.translate(
-              yAxisLineLength / 2 + m.width / 2 + 2 * horizontalPadding,
+              yAxisLineLength / 2 + ax.textWidth / 2 + 2 * horizontalPadding,
               0,
             );
-            ctx.translate(x - m.width, y);
+            ctx.translate(x - ax.textWidth, y);
             ctx.rotate((Math.PI / 180.0) * 30);
             ctx.fillText(text, 0, 0);
             ctx.closePath();
@@ -444,16 +431,6 @@ export const lineChart: ChartSetupFunction = (
 
       const drawCursor = () => {
         const mouse = instance.mouse;
-        ctx.save();
-        ctx.strokeStyle = GRID_COLOR;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(horizontalPadding, mouse.y);
-        ctx.lineTo(vw, mouse.y);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.restore();
-
         ctx.save();
         ctx.strokeStyle = GRID_COLOR;
         ctx.lineWidth = 2;
@@ -516,17 +493,21 @@ export const lineChart: ChartSetupFunction = (
 
       if (options.callback) {
         const pointIndex = getMousePointIndex();
-        const index =  clamp(linePoints[pointIndex].length > 0 ? linePoints[pointIndex][0].index : 0, 0, values.length-1);
-        let value = values[index] || 0;
+        const mousePoint = getMousePoint()[0];
+        const index = clamp(mousePoint.index,0, values.length);
+        //const index =  clamp(linePoints[pointIndex].length > 0 ? linePoints[pointIndex][0].index : 0, 0, values.length-1);
 
+        const value = values[index]
+        const xIndex = clamp(Math.ceil((index / values.length) * (xAxisItems.length-1)), 0, xAxisItems.length-1);
 //        if (closestPoint) {
 //          value = lerp(value, values[clamp(closestPoint.index, 0, values.length-1)], 0.5);
 //        }
 //        
           options.callback(
             instance,
+            xAxisItems[clamp(xIndex, 0, xAxisItems.length-1)],
             value,
-            index || 0,
+            index
           );
       }
     };
