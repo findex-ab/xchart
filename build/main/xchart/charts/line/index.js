@@ -8,6 +8,7 @@ const hash_1 = require("../../utils/hash");
 const style_1 = require("../../utils/style");
 const range_1 = require("../../types/range");
 const is_1 = require("../../utils/is");
+<<<<<<< Updated upstream
 const lineChart = (app, instance, data, options = types_1.defaultLineChartOptions) => {
     const ctx = instance.ctx;
     const GRID_COLOR = 'rgba(0, 0, 0, 0.1)';
@@ -60,6 +61,170 @@ const lineChart = (app, instance, data, options = types_1.defaultLineChartOption
             const text = options.yAxis && options.yAxis.format ? options.yAxis.format(ax.value) : `${ax.value.toFixed(2)}`;
             const m = ctx.measureText(text);
             return m.width;
+=======
+const date_fns_1 = require("date-fns");
+const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
+    let tooltipPosition = app.mouse.clone();
+    let tooltipPositionPrev = tooltipPosition.clone();
+    return (instance) => {
+        const ctx = instance.ctx;
+        const GRID_COLOR = options.xAxis && options.xAxis.color
+            ? options.xAxis.color
+            : 'rgba(0, 0, 0, 0.06)';
+        const GRID_ALPHA = options.xAxis && options.xAxis.color ? 0.1 : 1.0;
+        const verticalPadding = 50;
+        const fontSize = (0, is_1.isString)(options.fontSize)
+            ? options.fontSize
+            : (0, is_1.isNumber)(options.fontSize)
+                ? (0, style_1.pxToRemStr)(options.fontSize)
+                : `0.76rem`;
+        //const fontSizeRem = 0.76;
+        const w = instance.resolution.x;
+        const h = instance.resolution.y;
+        const vh = h - verticalPadding;
+        const dims = [
+            instance.resolution.x,
+            instance.resolution.y,
+            instance.size.x,
+            instance.size.y,
+            instance.canvas.width,
+            instance.canvas.height,
+        ];
+        const minDim = Math.min(...dims);
+        const maxDim = Math.max(...dims);
+        const xAxisItems = [
+            ...(options.xAxis ? (0, range_1.rangeToArray)(options.xAxis.range) : []),
+        ];
+        let xAxisStep = 8;
+        let xAxisDiff = 0;
+        if (xAxisItems.length >= 2) {
+            const a = xAxisItems[0];
+            const b = xAxisItems[1];
+            const times = xAxisItems.map(it => {
+                if ((0, date_fns_1.isDate)(it)) {
+                    return it.getTime() / 1000;
+                }
+                if ((0, is_1.isNumber)(it))
+                    return it;
+                return 0;
+            });
+            const maxTime = Math.max(1, Math.max(...times));
+            if ((0, date_fns_1.isDate)(a) && (0, date_fns_1.isDate)(b)) {
+                const diff = Math.abs((b.getTime() / 1000) - (a.getTime() / 1000));
+                xAxisDiff = diff;
+            }
+        }
+        const colors = options.colors || types_1.defaultLineChartOptions.colors;
+        //const callback = options.callback || (() => {});
+        const values = [...data.values].map((v) => Math.max(0, v));
+        const labels = data.labels ? data.labels : values.map((v) => v.toFixed(3));
+        const peak = Math.max(...values);
+        const mid = (0, etc_1.median)(values);
+        const xlen = values.length;
+        const yAxisFont = options.yAxis && options.yAxis.font
+            ? options.yAxis.font
+            : `${fontSize} sans-serif`;
+        const computeYAxis = () => {
+            const axis = {
+                points: (() => {
+                    const result = [];
+                    const max = Math.max(1, peak); //(offBottom+h)-(paddingY + Yoff);
+                    const step = Math.max(1, Math.floor(mid / vh) * 2);
+                    const N = max / step;
+                    let y = vh - verticalPadding;
+                    for (let i = 0; i < N; i++) {
+                        if (y <= verticalPadding)
+                            break;
+                        const ni = i / N;
+                        const vp = verticalPadding;
+                        const ny = (h - verticalPadding - y) / (vh - verticalPadding); //((step * (ni * vh)) / vh);
+                        const value = ny * peak;
+                        ctx.font = yAxisFont;
+                        const text = options.yAxis && options.yAxis.format
+                            ? options.yAxis.format(value)
+                            : `${value.toFixed(2)}`;
+                        const m = ctx.measureText(text);
+                        result.push({
+                            p: (0, vector_1.VEC2)(verticalPadding, y),
+                            value: value,
+                            textWidth: m.width,
+                            label: text
+                        });
+                        y -= step;
+                    }
+                    return result;
+                })(),
+            };
+            const widths = axis.points.map((it) => it.textWidth);
+            const totTextWidth = (0, etc_1.sum)(widths);
+            return Object.assign(Object.assign({}, axis), { totalTextWidth: totTextWidth, maxTextWidth: Math.max(...widths) });
+        };
+        const yAxis = computeYAxis();
+        const yAxisTextPadRight = 48;
+        const yAxisPad = 16;
+        const yAxisLineLength = yAxis.maxTextWidth + yAxisPad + yAxisTextPadRight;
+        const xAxisLineLength = 35;
+        const vw = w - yAxisLineLength; //subtracted;
+        const xAxisFont = options.xAxis && options.xAxis.font
+            ? options.xAxis.font
+            : `${fontSize} sans-serif`;
+        const computeXAxis = () => {
+            const axis = {
+                points: (() => {
+                    //  const result: AxisPoint[] = [];
+                    //  const max = Math.max(1, vw); //(offBottom+h)-(paddingY + Yoff);
+                    //  const step = Math.max(1, Math.floor(vw / 16));
+                    //  const N = max / step;
+                    //  let x = yAxisLineLength;
+                    //  for (let i = 0; i < N; i++) {
+                    //    const ni = i / N;
+                    //    const nx = (x - yAxisLineLength) / (vw - yAxisLineLength); //((step * (ni * vh)) / vh);
+                    //    const index = Math.round(clamp(i, 0, xAxisItems.length-1));
+                    //    const item = xAxisItems[index];
+                    //    const text = options.xAxis.format
+                    //      ? options.xAxis.format(item)
+                    //      : `${item}`;
+                    //    const m = ctx.measureText(text);
+                    //    result.push({
+                    //      p: VEC2(x, vh - xAxisLineLength),
+                    //      value: ni,
+                    //      textWidth: m.width,
+                    //      label: text
+                    //    });
+                    //    x += step;
+                    //  }
+                    //  return result;
+                    return xAxisItems.map((item, i) => {
+                        const ni = i / xAxisItems.length;
+                        const x = ni * (vw - yAxisLineLength) + yAxisLineLength;
+                        const y = h - xAxisLineLength;
+                        ctx.font = xAxisFont;
+                        const text = options.xAxis.format
+                            ? options.xAxis.format(item)
+                            : `${item}`;
+                        const m = ctx.measureText(text);
+                        return {
+                            p: (0, vector_1.VEC2)(x, y),
+                            value: ni,
+                            label: text,
+                            textWidth: m.width,
+                            index: i
+                        };
+                    });
+                })(),
+            };
+            const widths = axis.points.map((p) => p.textWidth);
+            const totTextWidth = (0, etc_1.sum)(widths);
+            return Object.assign(Object.assign({}, axis), { totalTextWidth: totTextWidth, maxTextWidth: Math.max(...widths) });
+        };
+        const xAxis = computeXAxis();
+        const points = values.map((v, i) => {
+            const nx = i / xlen;
+            const ny = v / (peak + (verticalPadding / vh) * peak);
+            const x = nx * (vw - yAxisLineLength) + yAxisLineLength;
+            const y = Math.max(0, vh - ny * vh); //offBottom + (((paddingBot + h) - ny * (h - paddingTop)));
+            return { p: (0, vector_1.VEC2)(x, y), index: i };
+>>>>>>> Stashed changes
         });
         return Math.max(...lengths);
     })();
@@ -170,6 +335,7 @@ const lineChart = (app, instance, data, options = types_1.defaultLineChartOption
             ctx.closePath();
             ctx.fill();
             ctx.globalAlpha = 1;
+<<<<<<< Updated upstream
         });
         ctx.restore();
     };
@@ -259,14 +425,178 @@ const lineChart = (app, instance, data, options = types_1.defaultLineChartOption
                 ctx.fillText(text, 0, 0);
                 ctx.closePath();
                 ctx.resetTransform();
+=======
+        };
+        const drawLabel = (point) => {
+            const p = point.p;
+            const mouseDist = instance.mouse.distance(p);
+            const s = (0, etc_1.smoothstep)((1.0 / (minDim / maxDim)) * 50, 0.0, mouseDist);
+            const label = labels
+                ? labels[(0, etc_1.clamp)(point.index, 0, labels.length)]
+                : undefined;
+            if (label && s > 0) {
+                const fontSize = (0, etc_1.lerp)(1, 2, s);
+                ctx.save();
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(0, 0, 0, ${s})`;
+                ctx.textAlign = 'center';
+                ctx.font = `${fontSize}rem sans-serif`;
+                ctx.fillText(`${label}`, p.x, p.y);
+                ctx.closePath();
+                ctx.restore();
+            }
+        };
+        const closestPoint = (() => {
+            return [...points].sort((a, b) => {
+                const da = a.p.distance(instance.mouse);
+                const db = b.p.distance(instance.mouse);
+                return da - db;
+            })[0];
+        })();
+        const draw = () => {
+            const drawYAxis = () => {
+                ctx.save();
+                ctx.strokeStyle = 'black';
+                ctx.fillStyle = 'black';
+                for (let i = 0; i < yAxis.points.length; i++) {
+                    const ax = yAxis.points[i];
+                    ctx.strokeStyle = GRID_COLOR;
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = GRID_ALPHA;
+                    const x = ax.p.x;
+                    const y = ax.p.y;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(vw, y);
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                    ctx.fillStyle =
+                        options.yAxis && options.yAxis.color
+                            ? options.yAxis.color
+                            : 'black';
+                    ctx.font = yAxisFont;
+                    ctx.beginPath();
+                    ctx.fillText(ax.label || '?', x, y);
+                    ctx.closePath();
+                }
+                ctx.restore();
+            };
+            const drawXAxis = (rotate = false) => {
+                ctx.save();
+                ctx.strokeStyle = 'black';
+                ctx.fillStyle = 'black';
+                for (let i = 0; i < xAxis.points.length; i++) {
+                    //if (!rotate && i % 2 != 0) continue;
+                    const ax = xAxis.points[i];
+                    const text = `${ax.label ? ax.label : ax.value.toFixed(2)}`;
+                    ctx.font = xAxisFont;
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.lineWidth = 1;
+                    const x = ax.p.x;
+                    const y = ax.p.y + (rotate ? 0 : 16);
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x, y + yAxisLineLength);
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.fillStyle =
+                        options.yAxis && options.yAxis.color
+                            ? options.yAxis.color
+                            : 'black';
+                    if (rotate) {
+                        ctx.beginPath();
+                        ctx.translate(yAxisLineLength / 2 + ax.textWidth / 2, 0);
+                        ctx.translate(x - ax.textWidth, y);
+                        ctx.rotate((Math.PI / 180.0) * 30);
+                        ctx.fillText(text, 0, 0);
+                        ctx.closePath();
+                        ctx.resetTransform();
+                    }
+                    else {
+                        ctx.beginPath();
+                        ctx.fillText(text, x, y);
+                        ctx.closePath();
+                    }
+                }
+                ctx.restore();
+            };
+            const drawCursor = () => {
+                const mouse = instance.mouse;
+                ctx.save();
+                ctx.strokeStyle = GRID_COLOR;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(mouse.x, verticalPadding);
+                ctx.lineTo(mouse.x, vh);
+                ctx.closePath();
+                ctx.stroke();
+                ctx.restore();
+            };
+            drawYAxis();
+            drawXAxis();
+            if (options.smoothPath) {
+                drawSmoothPath();
+>>>>>>> Stashed changes
             }
             else {
                 ctx.beginPath();
                 ctx.fillText(text, x, y);
                 ctx.closePath();
             }
+<<<<<<< Updated upstream
         }
         ctx.restore();
+=======
+            if (options.drawPoints) {
+                if (options.drawOnlyClosestPoint) {
+                    drawClosestPoint();
+                }
+                else {
+                    drawPoints(pointsToDraw);
+                }
+            }
+            if (closestPoint && options.drawLabels) {
+                drawLabel(closestPoint);
+            }
+            drawCursor();
+        };
+        const update = () => {
+            const updateTooltip = (instance) => {
+                const rect = instance.canvas.getBoundingClientRect();
+                const tooltipRect = instance.tooltip.el
+                    ? instance.tooltip.el.getBoundingClientRect()
+                    : { width: 0, height: 0, x: 0, y: 0 };
+                if (options.drawOnlyClosestPoint) {
+                    const p = getMousePointInverse();
+                    p.y -= tooltipRect.height;
+                    const pos = tooltipPositionPrev.lerp(p, (0, etc_1.clamp)(app.deltaTime * 8.0, 0, 1));
+                    tooltipPositionPrev = pos;
+                    instance.tooltip.state.position = pos;
+                }
+                else {
+                    instance.tooltip.state.position = app.mouse.clone();
+                    instance.tooltip.state.position.y += tooltipRect.height * 1.5;
+                }
+                instance.tooltip.state.opacity = Math.max(instance.invMouseDistance, instance.config.minTooltipOpacity || 0);
+            };
+            updateTooltip(instance);
+            if (options.callback) {
+                const pointIndex = getMousePointIndex();
+                const index = (0, etc_1.clamp)(linePoints[pointIndex].length > 0
+                    ? linePoints[pointIndex][1].index
+                    : 0, 0, values.length - 1);
+                let value = values[index] || 0;
+                //        if (closestPoint) {
+                //          value = lerp(value, values[clamp(closestPoint.index, 0, values.length-1)], 0.5);
+                //        }
+                //
+                options.callback(instance, value, index || 0);
+            }
+        };
+        update();
+        draw();
+>>>>>>> Stashed changes
     };
     drawYAxis();
     drawXAxis();

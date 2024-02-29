@@ -12,6 +12,7 @@ export type ChartAxis = {
   color?: string;
   font?: string;
   format?: (x: RangeScalar) => string;
+  skips?: number;
 }
 
 export type ChartOptions = {

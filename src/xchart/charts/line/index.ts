@@ -5,11 +5,16 @@ import {
   defaultLineChartOptions,
 } from './types';
 import { VEC2, VEC3, Vector } from '../../utils/vector';
+<<<<<<< Updated upstream
 import { clamp, lerp, median, smoothstep } from '../../utils/etc';
+=======
+import { clamp, lerp, median, remap, smoothstep, sum } from '../../utils/etc';
+>>>>>>> Stashed changes
 import { hexToUint32, nthByte } from '../../utils/hash';
 import { pxToRemStr  } from '../../utils/style';
 import { rangeToArray } from '../../types/range';
-import { isNumber, isString } from '../../utils/is';
+import { isNumber, isNumerical, isString } from '../../utils/is';
+import { isDate } from 'date-fns';
 
 
 type Point = {
@@ -21,6 +26,14 @@ type AxisPoint = {
   p: Vector;
   value: number;
   label?: string;
+  textWidth: number;
+  index?: number;
+};
+
+type Axis = {
+  points: AxisPoint[];
+  totalTextWidth: number;
+  maxTextWidth: number;
 };
 
 export const lineChart: ChartRunFunction = (
@@ -28,6 +41,7 @@ export const lineChart: ChartRunFunction = (
   instance: ChartInstance,
   data: ChartData,
   options: ChartOptions = defaultLineChartOptions,
+<<<<<<< Updated upstream
 ): LineChartState => {
   const ctx = instance.ctx;
 
@@ -53,14 +67,63 @@ export const lineChart: ChartRunFunction = (
   ];
   const minDim = Math.min(...dims);
   const maxDim = Math.max(...dims);
+=======
+): ChartUpdateFunction => {
+  let tooltipPosition = app.mouse.clone();
+  let tooltipPositionPrev = tooltipPosition.clone();
+
+  return (instance: ChartInstance) => {
+    const ctx = instance.ctx;
+
+    const GRID_COLOR =
+      options.xAxis && options.xAxis.color
+        ? options.xAxis.color
+        : 'rgba(0, 0, 0, 0.06)';
+    const GRID_ALPHA = options.xAxis && options.xAxis.color ? 0.1 : 1.0;
+    const verticalPadding = 50;
+    const fontSize = isString(options.fontSize)
+      ? options.fontSize
+      : isNumber(options.fontSize)
+        ? pxToRemStr(options.fontSize)
+        : `0.76rem`;
+    //const fontSizeRem = 0.76;
+>>>>>>> Stashed changes
 
   const xAxisItems = [...(options.xAxis ? rangeToArray(options.xAxis.range) : [])];
 
   const colors = options.colors || defaultLineChartOptions.colors;
   //const callback = options.callback || (() => {});
 
+<<<<<<< Updated upstream
   const values = [...data.values].map((v) => Math.max(0, v));
   const labels = data.labels ? data.labels : values.map(v => v.toFixed(3)); 
+=======
+    let xAxisStep = 8;
+    let xAxisDiff = 0;
+
+    if (xAxisItems.length >= 2) {
+      const a = xAxisItems[0];
+      const b = xAxisItems[1];
+
+      const times:number[] = xAxisItems.map(it => {
+        if (isDate(it)) {
+          return it.getTime() / 1000;
+        }
+        if (isNumber(it)) return it;
+        return 0;
+      })
+
+      const maxTime = Math.max(1, Math.max(...times));
+
+      if (isDate(a) && isDate(b)) {
+        const diff = Math.abs((b.getTime() / 1000) - (a.getTime() / 1000));
+        xAxisDiff = diff;
+      }
+    }
+
+    const colors = options.colors || defaultLineChartOptions.colors;
+    //const callback = options.callback || (() => {});
+>>>>>>> Stashed changes
 
   const peak = Math.max(...values);
   const mid = median(values);
@@ -76,6 +139,7 @@ export const lineChart: ChartRunFunction = (
       const y = Math.max(verticalPadding, vh - step * (ni * vh)); // - xAxisLineLength;//offBottom + ((((paddingBot + h) - ni * (h - paddingTop))));
       if (y <= verticalPadding) break;
 
+<<<<<<< Updated upstream
       const ny = (step * (ni * vh)) / vh;
       result.push({ p: VEC2(verticalPadding, y), value: ny * peak });
     }
@@ -89,6 +153,141 @@ export const lineChart: ChartRunFunction = (
       const text = options.yAxis && options.yAxis.format ? options.yAxis.format(ax.value) : `${ax.value.toFixed(2)}`; 
       const m = ctx.measureText(text);
       return m.width;
+=======
+    const yAxisFont = options.yAxis && options.yAxis.font
+                ? options.yAxis.font
+                : `${fontSize} sans-serif`;
+
+    const computeYAxis = (): Axis => {
+      const axis = {
+        points: (() => {
+          const result: AxisPoint[] = [];
+          const max = Math.max(1, peak); //(offBottom+h)-(paddingY + Yoff);
+          const step = Math.max(1, Math.floor(mid / vh) * 2);
+          const N = max / step;
+          let y = vh - verticalPadding;
+          for (let i = 0; i < N; i++) {
+            if (y <= verticalPadding) break;
+            
+            const ni = i / N;
+            const vp = verticalPadding;
+            const ny = (h - verticalPadding - y) / (vh - verticalPadding); //((step * (ni * vh)) / vh);
+
+            const value = ny * peak;
+
+            ctx.font = yAxisFont;
+            const text =
+              options.yAxis && options.yAxis.format
+                ? options.yAxis.format(value)
+                : `${value.toFixed(2)}`;
+            const m = ctx.measureText(text);
+            result.push({
+              p: VEC2(verticalPadding, y),
+              value: value,
+              textWidth: m.width,
+              label: text
+            });
+
+            y -= step;
+          }
+
+          return result;
+        })(),
+      };
+
+      const widths = axis.points.map((it) => it.textWidth);
+      const totTextWidth = sum(widths);
+
+      return {
+        ...axis,
+        totalTextWidth: totTextWidth,
+        maxTextWidth: Math.max(...widths),
+      };
+    };
+
+    const yAxis = computeYAxis();
+
+    const yAxisTextPadRight = 48;
+    const yAxisPad = 16;
+    const yAxisLineLength = yAxis.maxTextWidth + yAxisPad + yAxisTextPadRight;
+    const xAxisLineLength = 35;
+    const vw = w - yAxisLineLength; //subtracted;
+
+    const xAxisFont =
+      options.xAxis && options.xAxis.font
+        ? options.xAxis.font
+        : `${fontSize} sans-serif`;
+
+    const computeXAxis = (): Axis => {
+      const axis = {
+        points: (() => {
+        //  const result: AxisPoint[] = [];
+
+        //  const max = Math.max(1, vw); //(offBottom+h)-(paddingY + Yoff);
+        //  const step = Math.max(1, Math.floor(vw / 16));
+        //  const N = max / step;
+
+        //  let x = yAxisLineLength;
+        //  for (let i = 0; i < N; i++) {
+        //    const ni = i / N;
+        //    const nx = (x - yAxisLineLength) / (vw - yAxisLineLength); //((step * (ni * vh)) / vh);
+        //    const index = Math.round(clamp(i, 0, xAxisItems.length-1));
+        //    const item = xAxisItems[index];
+        //    const text = options.xAxis.format
+        //      ? options.xAxis.format(item)
+        //      : `${item}`;
+        //    const m = ctx.measureText(text);
+
+        //    result.push({
+        //      p: VEC2(x, vh - xAxisLineLength),
+        //      value: ni,
+        //      textWidth: m.width,
+        //      label: text
+        //    });
+
+        //    x += step;
+        //  }
+
+        //  return result;
+          
+          return xAxisItems.map((item, i): AxisPoint => {
+            const ni = i / xAxisItems.length;
+            const x = ni * (vw - yAxisLineLength) + yAxisLineLength;
+            const y = h - xAxisLineLength;
+            ctx.font = xAxisFont;
+            const text = options.xAxis.format
+              ? options.xAxis.format(item)
+              : `${item}`;
+            const m = ctx.measureText(text);
+            return {
+              p: VEC2(x, y),
+              value: ni,
+              label: text,
+              textWidth: m.width,
+              index: i
+            };
+          });
+        })(),
+      };
+
+      const widths = axis.points.map((p) => p.textWidth);
+      const totTextWidth = sum(widths);
+
+      return {
+        ...axis,
+        totalTextWidth: totTextWidth,
+        maxTextWidth: Math.max(...widths),
+      };
+    };
+    const xAxis = computeXAxis();
+
+    const points = values.map((v, i) => {
+      const nx = i / xlen;
+      const ny = v / (peak + (verticalPadding / vh) * peak);
+      const x = nx * (vw - yAxisLineLength) + yAxisLineLength;
+      const y = Math.max(0, vh - ny * vh); //offBottom + (((paddingBot + h) - ny * (h - paddingTop)));
+      return { p: VEC2(x, y), index: i };
+>>>>>>> Stashed changes
     });
 
     return Math.max(...lengths);
@@ -230,8 +429,204 @@ export const lineChart: ChartRunFunction = (
       ctx.closePath();
       ctx.fill();
       ctx.globalAlpha = 1;
+<<<<<<< Updated upstream
     });
     ctx.restore();
+=======
+    };
+
+    const drawLabel = (point: Point) => {
+      const p = point.p;
+      const mouseDist = instance.mouse.distance(p);
+      const s = smoothstep((1.0 / (minDim / maxDim)) * 50, 0.0, mouseDist);
+
+      const label = labels
+        ? labels[clamp(point.index, 0, labels.length)]
+        : undefined;
+
+      if (label && s > 0) {
+        const fontSize = lerp(1, 2, s);
+        ctx.save();
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(0, 0, 0, ${s})`;
+        ctx.textAlign = 'center';
+        ctx.font = `${fontSize}rem sans-serif`;
+        ctx.fillText(`${label}`, p.x, p.y);
+        ctx.closePath();
+        ctx.restore();
+      }
+    };
+
+    const closestPoint = (() => {
+      return [...points].sort((a, b) => {
+        const da = a.p.distance(instance.mouse);
+        const db = b.p.distance(instance.mouse);
+        return da - db;
+      })[0];
+    })();
+
+    const draw = () => {
+      const drawYAxis = () => {
+        ctx.save();
+        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'black';
+        for (let i = 0; i < yAxis.points.length; i++) {
+          const ax = yAxis.points[i];
+          ctx.strokeStyle = GRID_COLOR;
+          ctx.lineWidth = 1;
+          ctx.globalAlpha = GRID_ALPHA;
+          const x = ax.p.x;
+          const y = ax.p.y;
+
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(vw, y);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+
+          ctx.fillStyle =
+            options.yAxis && options.yAxis.color
+              ? options.yAxis.color
+              : 'black';
+          ctx.font = yAxisFont;
+          ctx.beginPath();
+
+          ctx.fillText(ax.label || '?', x, y);
+          ctx.closePath();
+        }
+        ctx.restore();
+      };
+
+      const drawXAxis = (rotate: boolean = false) => {
+        ctx.save();
+        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'black';
+        for (let i = 0; i < xAxis.points.length; i++) {
+          //if (!rotate && i % 2 != 0) continue;
+          const ax = xAxis.points[i];
+          const text = `${ax.label ? ax.label : ax.value.toFixed(2)}`;
+          ctx.font = xAxisFont;
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+          ctx.lineWidth = 1;
+
+          const x = ax.p.x;
+          const y = ax.p.y + (rotate ? 0 : 16);
+
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x, y + yAxisLineLength);
+          ctx.closePath();
+          ctx.stroke();
+
+          ctx.fillStyle =
+            options.yAxis && options.yAxis.color
+              ? options.yAxis.color
+              : 'black';
+          if (rotate) {
+            ctx.beginPath();
+            ctx.translate(yAxisLineLength / 2 + ax.textWidth / 2, 0);
+            ctx.translate(x - ax.textWidth, y);
+            ctx.rotate((Math.PI / 180.0) * 30);
+            ctx.fillText(text, 0, 0);
+            ctx.closePath();
+            ctx.resetTransform();
+          } else {
+            ctx.beginPath();
+            ctx.fillText(text, x, y);
+            ctx.closePath();
+          }
+        }
+        ctx.restore();
+      };
+
+      const drawCursor = () => {
+        const mouse = instance.mouse;
+        ctx.save();
+        ctx.strokeStyle = GRID_COLOR;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(mouse.x, verticalPadding);
+        ctx.lineTo(mouse.x, vh);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+      };
+
+      drawYAxis();
+      drawXAxis();
+
+      if (options.smoothPath) {
+        drawSmoothPath();
+      } else {
+        drawPath();
+      }
+
+      if (options.drawPoints) {
+        if (options.drawOnlyClosestPoint) {
+          drawClosestPoint();
+        } else {
+          drawPoints(pointsToDraw);
+        }
+      }
+
+      if (closestPoint && options.drawLabels) {
+        drawLabel(closestPoint);
+      }
+      drawCursor();
+    };
+
+    const update = () => {
+      const updateTooltip = (instance: ChartInstance) => {
+        const rect = instance.canvas.getBoundingClientRect();
+        const tooltipRect = instance.tooltip.el
+          ? (instance.tooltip.el as HTMLElement).getBoundingClientRect()
+          : { width: 0, height: 0, x: 0, y: 0 };
+
+        if (options.drawOnlyClosestPoint) {
+          const p = getMousePointInverse();
+          p.y -= tooltipRect.height;
+          const pos = tooltipPositionPrev.lerp(
+            p,
+            clamp(app.deltaTime * 8.0, 0, 1),
+          );
+          tooltipPositionPrev = pos;
+          instance.tooltip.state.position = pos;
+        } else {
+          instance.tooltip.state.position = app.mouse.clone();
+          instance.tooltip.state.position.y += tooltipRect.height * 1.5;
+        }
+
+        instance.tooltip.state.opacity = Math.max(
+          instance.invMouseDistance,
+          instance.config.minTooltipOpacity || 0,
+        );
+      };
+
+      updateTooltip(instance);
+
+      if (options.callback) {
+        const pointIndex = getMousePointIndex();
+        const index = clamp(
+          linePoints[pointIndex].length > 0
+            ? linePoints[pointIndex][1].index
+            : 0,
+          0,
+          values.length - 1,
+        );
+        let value = values[index] || 0;
+
+        //        if (closestPoint) {
+        //          value = lerp(value, values[clamp(closestPoint.index, 0, values.length-1)], 0.5);
+        //        }
+        //
+        options.callback(instance, value, index || 0);
+      }
+    };
+
+    update();
+    draw();
+>>>>>>> Stashed changes
   };
 
   const drawLabel = (point: Point) => {
