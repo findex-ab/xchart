@@ -4,11 +4,12 @@ import {
   clamp,
   fract,
   lerp,
+  lerpDates,
   remap,
   smoothstep,
   stepRange,
 } from '../../utils/etc';
-import { VEC2, Vector } from '../../utils/vector';
+import { VEC2, VEC3, Vector } from '../../utils/vector';
 import { Visd } from '../../visd';
 import * as fns from 'date-fns';
 import {
@@ -21,6 +22,7 @@ import { LineChartState, defaultLineChartOptions } from './types';
 import { isDate } from '../../utils/date';
 import { isString } from '../../utils/is';
 import { noise } from '../../utils/noise';
+import { hexToUint32, nthByte } from '../../utils/hash';
 
 type DrawTextOptions = {
   text: RangeScalar;
@@ -35,9 +37,11 @@ const drawLine = (
   a: Vector,
   b: Vector,
   color: string = 'black',
+  thick: number = 1
 ) => {
   ctx.save();
   ctx.strokeStyle = color;
+  ctx.lineWidth = thick
   ctx.beginPath();
   ctx.moveTo(a.x, a.y);
   ctx.lineTo(b.x, b.y);
@@ -117,7 +121,9 @@ const drawCurve2 = (
   w: number,
   h: number,
   padding: Padding,
+  colors: string[] = ['#FF0000', '#00FF00']
 ) => {
+  colors = colors || ['#FF0000', '#00FF00'];
   if (points.length <= 0) return;
   ctx.save();
   ctx.fillStyle = 'black';
@@ -129,6 +135,33 @@ const drawCurve2 = (
     const b = points[clamp(i + 1, 0, points.length - 1)];
 
     const c = a.lerp(b, 0.5);
+
+
+
+    const first = points[0];
+      const last = points[points.length - 1];
+
+      const strokeGrad = ctx.createLinearGradient(
+        first.x,
+        first.y,
+        last.x,
+        last.y,
+      );
+      const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
+      colors.forEach((color, i) => {
+        strokeGrad.addColorStop(i / colors.length, color);
+      });
+      const ci = hexToUint32(colors[2 % colors.length]);
+      const B = nthByte(ci, 1);
+      const G = nthByte(ci, 2);
+      const R = nthByte(ci, 3);
+      const rgb = VEC3(R, G, B);
+      fillGrad.addColorStop(1, `rgba(${rgb.x}, ${rgb.y}, ${rgb.z}, ${0.25})`);
+      fillGrad.addColorStop(0.5, `rgba(${rgb.x}, ${rgb.y}, ${rgb.z}, ${0.75})`);
+      fillGrad.addColorStop(0, `rgba(${rgb.x}, ${rgb.y}, ${rgb.z}, ${1.0})`);
+      ctx.strokeStyle = strokeGrad;
+      ctx.fillStyle = fillGrad;
+
 
     ctx.quadraticCurveTo(a.x, a.y, c.x, c.y);
     //    ctx.lineTo(c.x, c.y);
@@ -153,12 +186,11 @@ const drawCurve2 = (
   ctx.restore();
 };
 
-const drawPoint = (ctx: CanvasRenderingContext2D, point: Vector, color: string = 'red') => {
+const drawPoint = (ctx: CanvasRenderingContext2D, point: Vector, color: string = 'red', radius: number = 10) => {
   ctx.save();
   ctx.fillStyle = color;
-  const r = 10;
   ctx.beginPath();
-  ctx.arc(point.x-(r*0.5), point.y, r, 0, Math.PI * 2);
+  ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
@@ -217,7 +249,17 @@ export const lineChart: ChartSetupFunction = (
     return isString(y) ? y : isDate(y) ? fns.format(y, 'y-m-d') : y.toFixed(2);
   };
 
+  const GRID_COLOR = 'rgba(0, 0, 0, 0.1)';
+
+  let tooltipPos = app.mouse.clone();
+  let tooltipPosPrev = tooltipPos.clone();
+  
+  const colors = options.colors || defaultLineChartOptions.colors;
   return (instance) => {
+    const rect = instance.canvas.getBoundingClientRect();
+    const rx = instance.canvas.width / rect.width;
+    const ry = instance.canvas.height / rect.height;
+    
     const paddingAround = 10;
     const padding: Padding = {
       left: 0,
@@ -236,7 +278,7 @@ export const lineChart: ChartSetupFunction = (
     const h = size.y;
     const vh = h - (padding.bottom + padding.top);
     const numXTicks =
-      options.xAxis?.ticks || clamp(Math.log10(size.x * 10), 4, 100);
+      options.xAxis?.ticks || clamp(Math.log10(size.x * 10), 6, 100);
     const numYTicks = Math.floor(
       options.yAxis?.ticks ||
         clamp(Math.log10(peakY), Math.max(1, 4 * (size.x / vh)), 100),
@@ -253,21 +295,25 @@ export const lineChart: ChartSetupFunction = (
         text: formatY(yTickValues[Math.floor(i / yStep)]),
         value: yTickValues[Math.floor(i / yStep)],
         pos: VEC2(padding.left, vh - i - padding.bottom),
+        font: options.yAxis?.font,
+        color: options.yAxis?.color
       };
     });
 
     const yTickMeasures = yTickObjects.map((obj) => measureText(ctx, obj));
     const yTickWidths = yTickMeasures.map((m) => m.width);
     const maxYTickWidth = Math.max(...yTickWidths);
-    padding.left += maxYTickWidth;
+    padding.left += (maxYTickWidth + 8);
 
     yTickObjects.forEach((obj) => {
-      drawText(ctx, obj);
+      drawText(ctx, {...obj, pos: obj.pos.add(VEC2(0, -16))});
 
       drawLine(
         ctx,
         VEC2(obj.pos.x, obj.pos.y),
         VEC2(obj.pos.x + size.x, obj.pos.y),
+        GRID_COLOR,
+        2
       );
     });
 
@@ -291,6 +337,8 @@ export const lineChart: ChartSetupFunction = (
         text: formatX(xTickValues[Math.floor(i / xStep)]),
         value: xTickValues[Math.floor(i / xStep)],
         pos: VEC2(padding.left + i, vh + padding.bottom - textMarginBottom),
+        font: options.xAxis?.font,
+        color: options.xAxis?.color
       };
     });
 
@@ -323,19 +371,19 @@ export const lineChart: ChartSetupFunction = (
       const value = yValues[i];
       const nv = remap(value, minY, peakY, 0, 1);
       const ni = i / yValues.length;
-      const xIndex = clamp(
-        Math.floor(ni * (xTickObjects.length - 1)),
-        0,
-        xTickObjects.length - 1,
-      );
-      const yIndex = clamp(
-        Math.floor(ni * (yTickObjects.length - 1)),
-        0,
-        yTickObjects.length - 1,
-      );
+    //  const xIndex = clamp(
+    //    Math.floor(ni * (xTickObjects.length - 1)),
+    //    0,
+    //    xTickObjects.length - 1,
+    //  );
+    //  const yIndex = clamp(
+    //    Math.floor(ni * (yTickObjects.length - 1)),
+    //    0,
+    //    yTickObjects.length - 1,
+    //  );
 
-      const xObj = xTickObjects[xIndex];
-      const yObj = yTickObjects[yIndex];
+    //  const xObj = xTickObjects[xIndex];
+    //  const yObj = yTickObjects[yIndex];
 
       //const y = (h - padding.bottom) - (nv * (h - (padding.bottom + padding.top)));//Math.floor(nv*(h - (padding.bottom+padding.top)));
       //const x = xObj.pos.x;
@@ -359,59 +407,103 @@ export const lineChart: ChartSetupFunction = (
       points.push(pos);
     }
 
-    const curvePoints = createCurvePoints(points);
-    drawCurve2(ctx, points, w, h - padding.bottom, padding);
+   // const curvePoints = createCurvePoints(points);
+    drawCurve2(ctx, points, w, h - padding.bottom, padding, colors || []);
 
     const left = padding.left;
     const right = w;
 
     const getMousePointIndex = () => {
-      const ni =
-        (Math.floor(instance.mouse.x) - padding.left) /
-        (w - padding.left);
+      let mx = (app.mouse.x - rect.x);
+      const L = padding.left;
+      const R = right;
+      mx = mx / (rect.width);
+
+      mx *= (R - 0.5*L);
+      mx -= L;
+      const ww = Math.abs((R - L));
+      const ni = clamp(mx / ww, 0, 1);
+      
+      //const ni = clamp(
+      //  Math.floor((remap(instance.mouse.x, 0, instance.canvas.width,
+      //        left, right
+      //  ))) / Math.abs(right),
+      //  0,
+      //  1,
+      //); 
       return clamp(
-        Math.round(ni * (points.length - 1)),
+        Math.ceil((ni * (points.length))),
         0,
         points.length - 1,
       );
     };
 
     const mouseInteraction = () => {
-      const nx = clamp(
-        Math.max(
-          0,
-          (instance.mouse.x / instance.canvas.width) * (right - left) -
-            maxYTickWidth,
-        ) /
-          (w - 2 * padding.left),
-        0,
-        1,
-      );
+
+      drawLine(ctx, VEC2(instance.mouse.x, vh), VEC2(instance.mouse.x, 0), GRID_COLOR, 2);
+
+      let mx = (app.mouse.x - rect.x);
+      const L = padding.left;
+      const R = right;
+      mx = mx / (rect.width);
+
+      mx *= (R - 0.5*L);
+      mx -= L;
+      const ww = Math.abs((R - L));
+      const nx = clamp(mx / ww, 0, 1);
+      
+      
+      //const nx = clamp(
+      //  Math.max(
+      //    0,
+      //    (instance.mouse.x / instance.canvas.width) * (right - left) -
+      //      maxYTickWidth,
+      //  ) /
+      //    (w - 2 * padding.left),
+      //  0,
+      //  1,
+      //);
 
       const valueIndex = Math.round(
         clamp(nx * (yValues.length - 1), 0, yValues.length - 1),
       );
+
+      const xValueIndex = (
+        clamp(Math.floor(nx * (xValues.length)), 0, xValues.length - 1)
+      );
+
+      const xValueIndex2 = (
+        clamp(Math.floor(nx * (xTickValues.length)), 0, xTickValues.length - 1)
+      );
       const value = yValues[valueIndex];
+      const key1 = xValues[xValueIndex];
+      const key2 = xTickValues[xValueIndex2];
+      
 
+      let f = fract(nx * (xTickValues.length - 1));
+      f = f * f * (3.0 - 2.0 * f);
+      const key = lerpDates(key1, key2, f);
       const idx = getMousePointIndex();
-      const point = (curvePoints[idx][1] || curvePoints[idx][0]).clone();
+      const point = points[idx] || VEC2(0, 0);//(curvePoints[idx][1] || curvePoints[idx][0]).clone();
 
-      drawPoint(ctx, VEC2(lerp(point.x, instance.mouse.x, 0.5), point.y), options.pointColor || 'red');
+      drawPoint(ctx, VEC2(lerp(point.x, instance.mouse.x, 0.5), point.y), options.pointColor || 'red', 8);
 
       const updateTooltip = () => {
-        const rect = instance.canvas.getBoundingClientRect();
+        
         const tooltipRect = instance.tooltip.el
           ? (instance.tooltip.el as HTMLElement).getBoundingClientRect()
           : { width: 0, height: 0, x: 0, y: 0 };
 
 
-        const rx = instance.canvas.width / rect.width;
-        const ry = instance.canvas.height / rect.height;
+        
         const x = lerp(rect.x+(point.x/rx), app.mouse.x, 0.5);
-        instance.tooltip.state.position = app.mouse.clone();
-        instance.tooltip.state.position.y = rect.y + (point.y/ry);
-        instance.tooltip.state.position.x = x;
-        instance.tooltip.state.position.y -= tooltipRect.height;
+        const y = Math.min((rect.y + (point.y/ry)) - tooltipRect.height, app.mouse.y);
+
+        const nextTooltipPos = VEC2(x, y);
+        const pos = tooltipPosPrev.lerp(nextTooltipPos, clamp(app.deltaTime*8.0, 0, 1));
+        tooltipPosPrev = pos;
+        
+        instance.tooltip.state.position = pos;
         
 
         instance.tooltip.state.opacity = Math.max(
@@ -424,7 +516,7 @@ export const lineChart: ChartSetupFunction = (
 
       updateTooltip();
       if (options.callback) {
-        options.callback(instance, value, value, value);
+        options.callback(instance, key, value, valueIndex);
       }
     };
 

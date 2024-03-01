@@ -31,10 +31,12 @@ const fns = __importStar(require("date-fns"));
 const types_1 = require("./types");
 const date_1 = require("../../utils/date");
 const is_1 = require("../../utils/is");
+const hash_1 = require("../../utils/hash");
 // draw line from A to B
-const drawLine = (ctx, a, b, color = 'black') => {
+const drawLine = (ctx, a, b, color = 'black', thick = 1) => {
     ctx.save();
     ctx.strokeStyle = color;
+    ctx.lineWidth = thick;
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
@@ -97,7 +99,8 @@ const createCurvePoints = (points) => {
     }
     return result;
 };
-const drawCurve2 = (ctx, points, w, h, padding) => {
+const drawCurve2 = (ctx, points, w, h, padding, colors = ['#FF0000', '#00FF00']) => {
+    colors = colors || ['#FF0000', '#00FF00'];
     if (points.length <= 0)
         return;
     ctx.save();
@@ -109,6 +112,23 @@ const drawCurve2 = (ctx, points, w, h, padding) => {
         const a = points[i];
         const b = points[(0, etc_1.clamp)(i + 1, 0, points.length - 1)];
         const c = a.lerp(b, 0.5);
+        const first = points[0];
+        const last = points[points.length - 1];
+        const strokeGrad = ctx.createLinearGradient(first.x, first.y, last.x, last.y);
+        const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
+        colors.forEach((color, i) => {
+            strokeGrad.addColorStop(i / colors.length, color);
+        });
+        const ci = (0, hash_1.hexToUint32)(colors[2 % colors.length]);
+        const B = (0, hash_1.nthByte)(ci, 1);
+        const G = (0, hash_1.nthByte)(ci, 2);
+        const R = (0, hash_1.nthByte)(ci, 3);
+        const rgb = (0, vector_1.VEC3)(R, G, B);
+        fillGrad.addColorStop(1, `rgba(${rgb.x}, ${rgb.y}, ${rgb.z}, ${0.25})`);
+        fillGrad.addColorStop(0.5, `rgba(${rgb.x}, ${rgb.y}, ${rgb.z}, ${0.75})`);
+        fillGrad.addColorStop(0, `rgba(${rgb.x}, ${rgb.y}, ${rgb.z}, ${1.0})`);
+        ctx.strokeStyle = strokeGrad;
+        ctx.fillStyle = fillGrad;
         ctx.quadraticCurveTo(a.x, a.y, c.x, c.y);
         //    ctx.lineTo(c.x, c.y);
         //const xc = (a.p.x + b.p.x) * 0.5;
@@ -124,12 +144,11 @@ const drawCurve2 = (ctx, points, w, h, padding) => {
     ctx.fill();
     ctx.restore();
 };
-const drawPoint = (ctx, point, color = 'red') => {
+const drawPoint = (ctx, point, color = 'red', radius = 10) => {
     ctx.save();
     ctx.fillStyle = color;
-    const r = 10;
     ctx.beginPath();
-    ctx.arc(point.x - (r * 0.5), point.y, r, 0, Math.PI * 2);
+    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -172,8 +191,15 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             return options.yAxis.format(y);
         return (0, is_1.isString)(y) ? y : (0, date_1.isDate)(y) ? fns.format(y, 'y-m-d') : y.toFixed(2);
     };
+    const GRID_COLOR = 'rgba(0, 0, 0, 0.1)';
+    let tooltipPos = app.mouse.clone();
+    let tooltipPosPrev = tooltipPos.clone();
+    const colors = options.colors || types_1.defaultLineChartOptions.colors;
     return (instance) => {
         var _a, _b;
+        const rect = instance.canvas.getBoundingClientRect();
+        const rx = instance.canvas.width / rect.width;
+        const ry = instance.canvas.height / rect.height;
         const paddingAround = 10;
         const padding = {
             left: 0,
@@ -188,26 +214,29 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
         const size = instance.resolution;
         const h = size.y;
         const vh = h - (padding.bottom + padding.top);
-        const numXTicks = ((_a = options.xAxis) === null || _a === void 0 ? void 0 : _a.ticks) || (0, etc_1.clamp)(Math.log10(size.x * 10), 4, 100);
+        const numXTicks = ((_a = options.xAxis) === null || _a === void 0 ? void 0 : _a.ticks) || (0, etc_1.clamp)(Math.log10(size.x * 10), 6, 100);
         const numYTicks = Math.floor(((_b = options.yAxis) === null || _b === void 0 ? void 0 : _b.ticks) ||
             (0, etc_1.clamp)(Math.log10(peakY), Math.max(1, 4 * (size.x / vh)), 100));
         const yStep = Math.max(1, Math.ceil(vh / numYTicks));
         const yTicks = (0, etc_1.stepRange)(vh, yStep);
         const yTickValues = yTicks.map((i) => (0, etc_1.lerp)(0, peakY, i / ((yTicks.length - 1) * yStep)));
         const yTickObjects = yTicks.map((i) => {
+            var _a, _b;
             return {
                 text: formatY(yTickValues[Math.floor(i / yStep)]),
                 value: yTickValues[Math.floor(i / yStep)],
                 pos: (0, vector_1.VEC2)(padding.left, vh - i - padding.bottom),
+                font: (_a = options.yAxis) === null || _a === void 0 ? void 0 : _a.font,
+                color: (_b = options.yAxis) === null || _b === void 0 ? void 0 : _b.color
             };
         });
         const yTickMeasures = yTickObjects.map((obj) => measureText(ctx, obj));
         const yTickWidths = yTickMeasures.map((m) => m.width);
         const maxYTickWidth = Math.max(...yTickWidths);
-        padding.left += maxYTickWidth;
+        padding.left += (maxYTickWidth + 8);
         yTickObjects.forEach((obj) => {
-            drawText(ctx, obj);
-            drawLine(ctx, (0, vector_1.VEC2)(obj.pos.x, obj.pos.y), (0, vector_1.VEC2)(obj.pos.x + size.x, obj.pos.y));
+            drawText(ctx, Object.assign(Object.assign({}, obj), { pos: obj.pos.add((0, vector_1.VEC2)(0, -16)) }));
+            drawLine(ctx, (0, vector_1.VEC2)(obj.pos.x, obj.pos.y), (0, vector_1.VEC2)(obj.pos.x + size.x, obj.pos.y), GRID_COLOR, 2);
         });
         // ===================== X ticks
         const w = (0, etc_1.remap)(instance.resolution.x, 0, instance.resolution.x, padding.left, instance.resolution.x - padding.right); //instance.resolution.x - padding.left;
@@ -215,10 +244,13 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
         const xTicks = (0, etc_1.stepRange)(w - padding.left, xStep);
         const xTickValues = xTicks.map((i) => new Date((0, etc_1.lerp)(minX, peakX, i / ((xTicks.length - 1) * xStep))));
         const xTickObjects = xTicks.map((i) => {
+            var _a, _b;
             return {
                 text: formatX(xTickValues[Math.floor(i / xStep)]),
                 value: xTickValues[Math.floor(i / xStep)],
                 pos: (0, vector_1.VEC2)(padding.left + i, vh + padding.bottom - textMarginBottom),
+                font: (_a = options.xAxis) === null || _a === void 0 ? void 0 : _a.font,
+                color: (_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.color
             };
         });
         //const xTickMeasures = xTickObjects.map(obj => measureText(ctx, obj));
@@ -244,10 +276,18 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             const value = yValues[i];
             const nv = (0, etc_1.remap)(value, minY, peakY, 0, 1);
             const ni = i / yValues.length;
-            const xIndex = (0, etc_1.clamp)(Math.floor(ni * (xTickObjects.length - 1)), 0, xTickObjects.length - 1);
-            const yIndex = (0, etc_1.clamp)(Math.floor(ni * (yTickObjects.length - 1)), 0, yTickObjects.length - 1);
-            const xObj = xTickObjects[xIndex];
-            const yObj = yTickObjects[yIndex];
+            //  const xIndex = clamp(
+            //    Math.floor(ni * (xTickObjects.length - 1)),
+            //    0,
+            //    xTickObjects.length - 1,
+            //  );
+            //  const yIndex = clamp(
+            //    Math.floor(ni * (yTickObjects.length - 1)),
+            //    0,
+            //    yTickObjects.length - 1,
+            //  );
+            //  const xObj = xTickObjects[xIndex];
+            //  const yObj = yTickObjects[yIndex];
             //const y = (h - padding.bottom) - (nv * (h - (padding.bottom + padding.top)));//Math.floor(nv*(h - (padding.bottom+padding.top)));
             //const x = xObj.pos.x;
             //const y = yObj.pos.y;
@@ -264,42 +304,76 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             //const y = remap(value, minY, peakY, Math.min(...yTickObjects.map(it => it.pos.y)), Math.max(...yTickObjects.map(it => it.pos.y)));
             points.push(pos);
         }
-        const curvePoints = createCurvePoints(points);
-        drawCurve2(ctx, points, w, h - padding.bottom, padding);
+        // const curvePoints = createCurvePoints(points);
+        drawCurve2(ctx, points, w, h - padding.bottom, padding, colors || []);
         const left = padding.left;
         const right = w;
         const getMousePointIndex = () => {
-            const ni = (Math.floor(instance.mouse.x) - padding.left) /
-                (w - padding.left);
-            return (0, etc_1.clamp)(Math.round(ni * (points.length - 1)), 0, points.length - 1);
+            let mx = (app.mouse.x - rect.x);
+            const L = padding.left;
+            const R = right;
+            mx = mx / (rect.width);
+            mx *= (R - 0.5 * L);
+            mx -= L;
+            const ww = Math.abs((R - L));
+            const ni = (0, etc_1.clamp)(mx / ww, 0, 1);
+            //const ni = clamp(
+            //  Math.floor((remap(instance.mouse.x, 0, instance.canvas.width,
+            //        left, right
+            //  ))) / Math.abs(right),
+            //  0,
+            //  1,
+            //); 
+            return (0, etc_1.clamp)(Math.ceil((ni * (points.length))), 0, points.length - 1);
         };
         const mouseInteraction = () => {
-            const nx = (0, etc_1.clamp)(Math.max(0, (instance.mouse.x / instance.canvas.width) * (right - left) -
-                maxYTickWidth) /
-                (w - 2 * padding.left), 0, 1);
+            drawLine(ctx, (0, vector_1.VEC2)(instance.mouse.x, vh), (0, vector_1.VEC2)(instance.mouse.x, 0), GRID_COLOR, 2);
+            let mx = (app.mouse.x - rect.x);
+            const L = padding.left;
+            const R = right;
+            mx = mx / (rect.width);
+            mx *= (R - 0.5 * L);
+            mx -= L;
+            const ww = Math.abs((R - L));
+            const nx = (0, etc_1.clamp)(mx / ww, 0, 1);
+            //const nx = clamp(
+            //  Math.max(
+            //    0,
+            //    (instance.mouse.x / instance.canvas.width) * (right - left) -
+            //      maxYTickWidth,
+            //  ) /
+            //    (w - 2 * padding.left),
+            //  0,
+            //  1,
+            //);
             const valueIndex = Math.round((0, etc_1.clamp)(nx * (yValues.length - 1), 0, yValues.length - 1));
+            const xValueIndex = ((0, etc_1.clamp)(Math.floor(nx * (xValues.length)), 0, xValues.length - 1));
+            const xValueIndex2 = ((0, etc_1.clamp)(Math.floor(nx * (xTickValues.length)), 0, xTickValues.length - 1));
             const value = yValues[valueIndex];
+            const key1 = xValues[xValueIndex];
+            const key2 = xTickValues[xValueIndex2];
+            let f = (0, etc_1.fract)(nx * (xTickValues.length - 1));
+            f = f * f * (3.0 - 2.0 * f);
+            const key = (0, etc_1.lerpDates)(key1, key2, f);
             const idx = getMousePointIndex();
-            const point = (curvePoints[idx][1] || curvePoints[idx][0]).clone();
-            drawPoint(ctx, (0, vector_1.VEC2)((0, etc_1.lerp)(point.x, instance.mouse.x, 0.5), point.y), options.pointColor || 'red');
+            const point = points[idx] || (0, vector_1.VEC2)(0, 0); //(curvePoints[idx][1] || curvePoints[idx][0]).clone();
+            drawPoint(ctx, (0, vector_1.VEC2)((0, etc_1.lerp)(point.x, instance.mouse.x, 0.5), point.y), options.pointColor || 'red', 8);
             const updateTooltip = () => {
-                const rect = instance.canvas.getBoundingClientRect();
                 const tooltipRect = instance.tooltip.el
                     ? instance.tooltip.el.getBoundingClientRect()
                     : { width: 0, height: 0, x: 0, y: 0 };
-                const rx = instance.canvas.width / rect.width;
-                const ry = instance.canvas.height / rect.height;
                 const x = (0, etc_1.lerp)(rect.x + (point.x / rx), app.mouse.x, 0.5);
-                instance.tooltip.state.position = app.mouse.clone();
-                instance.tooltip.state.position.y = rect.y + (point.y / ry);
-                instance.tooltip.state.position.x = x;
-                instance.tooltip.state.position.y -= tooltipRect.height;
+                const y = Math.min((rect.y + (point.y / ry)) - tooltipRect.height, app.mouse.y);
+                const nextTooltipPos = (0, vector_1.VEC2)(x, y);
+                const pos = tooltipPosPrev.lerp(nextTooltipPos, (0, etc_1.clamp)(app.deltaTime * 8.0, 0, 1));
+                tooltipPosPrev = pos;
+                instance.tooltip.state.position = pos;
                 instance.tooltip.state.opacity = Math.max(instance.invMouseDistance, instance.config.minTooltipOpacity || 0);
             };
             //   drawLine(ctx, VEC2(left, vh/2), VEC2(right, vh/2));
             updateTooltip();
             if (options.callback) {
-                options.callback(instance, value, value, value);
+                options.callback(instance, key, value, valueIndex);
             }
         };
         mouseInteraction();
