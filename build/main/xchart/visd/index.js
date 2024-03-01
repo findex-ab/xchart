@@ -101,7 +101,22 @@ const createApp = (cfg) => {
             const sizes = computeSizes(resolution, size, instance.config, instance);
             instance.canvas.style.width = `${sizes.size.x}px`; //`100%`;
             instance.canvas.style.height = `${sizes.size.y}px`; //`100%`;
-            if (instance.config.fitContainer && instance.xel && instance.xel.el) {
+            if (instance.config.responsive && instance.xel && instance.xel.el) {
+                const el = (instance.xel.el);
+                const parent = (instance.xel.el.parentElement || instance.xel.el);
+                const elRect = el.getBoundingClientRect();
+                //const elRectParent = parent.getBoundingClientRect();
+                let width = parseFloat(getComputedStyle(parent).width); //Math.max(elRect.width, elRectParent.width);
+                let height = elRect.height;
+                instance.canvas.style.width = `${width}px`;
+                instance.canvas.style.height = `${height}px`;
+                instance.canvas.style.maxWidth = `${width}px`;
+                instance.canvas.style.maxHeight = `${height}px`;
+                const canvasRect = instance.canvas.getBoundingClientRect();
+                instance.size.x = canvasRect.width;
+                instance.size.y = canvasRect.height;
+            }
+            else if (instance.config.fitContainer && instance.xel && instance.xel.el) {
                 const el = (instance.xel.el.parentElement || instance.xel.el);
                 const style = getComputedStyle(el);
                 instance.canvas.style.width = style.width;
