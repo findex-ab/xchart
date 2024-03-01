@@ -1,5 +1,5 @@
-import { X, mount } from 'xel';
-import { VEC2, VisdApp, lerp, noise, range } from '../xchart';
+import { X, mount } from "xel";
+import { VEC2, VisdApp, lerp, noise, range } from "../xchart";
 import * as fns from 'date-fns';
 import data_ from '../data/data.json';
 import { maxDate, minDate } from '../xchart/utils/date';
@@ -31,36 +31,69 @@ function mergePerformanceData(data) {
     return mergedData;
 }
 const data = data_;
+const N = 60;
+const FREQ = 2.3;
+const randomDate = (seed) => {
+    const r1 = noise(seed);
+    seed += 23.8125;
+    const r2 = noise(seed);
+    seed += r1 + 11.2191;
+    const r3 = noise(seed);
+    seed += r3 + 6.44442;
+    const year = Math.round(lerp(1999, 2024, r1, true));
+    const month = Math.round(lerp(1, 12, r2, true));
+    const day = Math.floor(lerp(1, 31, r3, true));
+    const str = `${year}-${month}-${day}`;
+    return new Date(str);
+};
+const randomValue = (seed, min = 0, max = 1) => {
+    return lerp(min, max, noise(seed));
+};
 const App = X('div', {
-    style: {},
+    style: {
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
     render() {
         const vis = VisdApp({
             container: document.body,
         });
-        const resolution = VEC2(640, 480).scale(1.5);
+        const size = VEC2(640, 480).scale(1.2);
+        const resolution = size.scale(1.6);
         const sortedData = mergePerformanceData(data).sort((a, b) => {
             return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
         const dataDates = sortedData.map((it) => new Date(it.date));
         const dataValues = sortedData.map((it) => it.accMonetaryPerf);
-        const N = 2500;
-        const dates = range(N).map((i) => new Date(Math.floor(lerp(2000, 2024, i / N)) + '-01-01')); //sortedData.map((it) => new Date(it.date));
-        const values = range(N).map((i) => noise((i / N) * 300.0312)); //sortedData.map((it) => it.accMonetaryPerf);
+        const data2 = range(N).map(i => {
+            const u1 = (i / N) * FREQ;
+            const u2 = (u1 + 4.482185) * FREQ;
+            return {
+                date: randomDate(u1),
+                value: 100 * randomValue(u2)
+            };
+        }).sort((a, b) => fns.compareAsc(a.date, b.date));
+        const values = data2.map(d => d.value);
+        const dates = data2.map(d => d.date);
         const instance = vis.insert({
             uid: '5492',
             config: {
                 onlyActiveWhenMouseOver: true,
                 fitContainer: true,
                 resolution: resolution,
-                size: resolution,
+                size: size,
                 minTooltipOpacity: 1,
                 sizeClamp: {
-                    min: resolution,
+                    min: size,
                     max: resolution,
                 },
             },
             fun: vis.charts.line({
-                values: dataValues,
+                values: values,
                 //labels: items.value.map(t => t.date.toString())
             }, {
                 autoFit: false,
@@ -73,15 +106,15 @@ const App = X('div', {
                 thick: 4,
                 xAxis: {
                     format: (x) => {
-                        return fns.format(x, 'y-m-d');
+                        return fns.format(x, 'MMM dd yy');
                     },
                     range: {
-                        start: minDate(dataDates),
-                        end: maxDate(dataDates),
-                        step: ONE_YEAR,
-                    },
+                        start: minDate(dates),
+                        end: maxDate(dates),
+                        step: 2_629_746_000
+                    }
                 },
-                callback: (instance, value, index) => {
+                callback: (instance, key, value, index) => {
                     instance.setTooltipBody(X('div', {
                         render() {
                             return X('div', {
@@ -100,8 +133,8 @@ const App = X('div', {
                         borderStyle: 'solid',
                         borderWidth: '2px',
                         borderColor: 'black',
-                        width: '640px',
-                        height: '480px'
+                        width: `${size.x}px`,
+                        height: `${size.y}px`
                     },
                     children: [instance.xel],
                 }),

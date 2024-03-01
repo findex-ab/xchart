@@ -1,4 +1,5 @@
-export declare const lerp: (vFrom: number, vTo: number, scale: number) => number;
+export declare const lerp: (vFrom: number, vTo: number, scale: number, clampScale?: boolean) => number;
+export declare const lerpDates: (vFrom: Date, vTo: Date, scale: number) => Date;
 export declare const clamp: (value: number, min: number, max: number) => number;
 export declare const fract: (x: number) => number;
 export declare const smoothstep: (edge0: number, edge1: number, value: number) => number;
@@ -7,6 +8,7 @@ export declare const slt: (a: number, b: number, s: number) => number;
 export declare const smin: (a: number, b: number, k: number) => number;
 export declare const smax: (a: number, b: number, k: number) => number;
 export declare const range: (n: number) => number[];
+export declare const stepRange: (n: number, step?: number) => number[];
 export declare const sum: (arr: number[]) => number;
 export declare const avg: (arr: number[]) => number;
 export declare const median: (arr: number[]) => number;

@@ -1,10 +1,10 @@
 import * as fns from 'date-fns';
-import { getDatesBetween } from '../utils/date';
+import { getDatesBetween, isDate } from '../utils/date';
 import { isNumber } from '../utils/is';
 import { range } from '../utils/etc';
 
 
-export type RangeScalar = Date | number;
+export type RangeScalar = Date | number | string;
 
 
 export type Range = {
@@ -14,7 +14,8 @@ export type Range = {
   array?: RangeScalar[]
 }
 
-export const rangeToArray = (r: Range) => {
+export const rangeToArray = (r: Range | RangeScalar[]) => {
+  if (Array.isArray(r)) return r.sort((a, b) => fns.compareAsc(a, b));
   if (r.array) return r.array.sort((a, b) => {
     return fns.compareAsc(a, b);
   });
@@ -22,8 +23,9 @@ export const rangeToArray = (r: Range) => {
   const a = r.start;
   const b = r.end;
 
-  if (fns.isDate(a) && fns.isDate(b)) {
-    return [];//getDatesBetween(a, b, r.step);
+  if (isDate(a) && isDate(b)) {
+    //return fns.eachMonthOfInterval({start: a, end: b})
+    return getDatesBetween(a, b, r.step);
   }
 
   if (isNumber(a) && isNumber(b)) {

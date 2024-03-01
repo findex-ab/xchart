@@ -135,6 +135,8 @@ export const computeXAxis = (
     const item = xAxisItems[clamp(Math.round(index), 0, xAxisItems.length-1)];
 
     const x = padding.left + (ni * vw);
+
+    if (x >= vw) break;
     const y = h - padding.bottom;
 
     let text = '';

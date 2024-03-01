@@ -9,6 +9,6 @@ const noise = (x) => {
     lv = lv * lv * (3.0 - 2.0 * lv);
     const a = (0, hash_1.hashf)(id + 0);
     const b = (0, hash_1.hashf)(id + 1);
-    return (0, etc_1.lerp)(a, b, lv);
+    return (0, etc_1.clamp)((0, etc_1.lerp)(a, b, lv), 0, 1);
 };
 exports.noise = noise;

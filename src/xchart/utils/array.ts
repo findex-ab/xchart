@@ -15,3 +15,27 @@ export const stepForEach = <T = any>(arr: T[], sliceSize: number, fun: (it: Arra
     fun(slice);
   }
 }
+
+
+export const uniqueBy = <T, KV = string>(arr: T[], key: string | ((item: T) => KV)): T[] => {
+  const nextArr: T[] = []
+
+  try {
+    const getId = (item: T, k: string | ((item: T) => KV)): any => {
+      return typeof k === 'string' ? item[k as keyof T] : k(item)
+    }
+    for (const item of arr) {
+      const id = getId(item, key)
+      const count = nextArr.filter((it) => getId(it, key) === id).length
+      if (count > 0) continue
+      nextArr.push(item)
+    }
+  } catch (e) {
+    console.error('uniqueBy() failed.')
+    console.error(e)
+  }
+
+  return nextArr
+}
+
+export const unique = <T>(arr: T[]): T[] => [...Array.from(new Set(arr))] as T[]

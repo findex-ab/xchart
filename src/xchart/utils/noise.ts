@@ -1,4 +1,4 @@
-import { fract, lerp } from "./etc";
+import { clamp, fract, lerp } from "./etc";
 import { hashf } from "./hash";
 
 export const noise = (x: number) => {
@@ -7,5 +7,5 @@ export const noise = (x: number) => {
   lv = lv * lv * (3.0 - 2.0 * lv);
   const a = hashf(id + 0);
   const b = hashf(id + 1);
-  return lerp(a, b, lv);
+  return  clamp(lerp(a, b, lv), 0, 1);
 }

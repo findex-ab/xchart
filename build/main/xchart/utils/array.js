@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stepForEach = exports.chunkify = void 0;
+exports.unique = exports.uniqueBy = exports.stepForEach = exports.chunkify = void 0;
 const chunkify = (arr, sliceSize = 2) => {
     const result = [[]];
     for (let i = 0; i < arr.length; i += sliceSize) {
@@ -17,3 +17,26 @@ const stepForEach = (arr, sliceSize, fun) => {
     }
 };
 exports.stepForEach = stepForEach;
+const uniqueBy = (arr, key) => {
+    const nextArr = [];
+    try {
+        const getId = (item, k) => {
+            return typeof k === 'string' ? item[k] : k(item);
+        };
+        for (const item of arr) {
+            const id = getId(item, key);
+            const count = nextArr.filter((it) => getId(it, key) === id).length;
+            if (count > 0)
+                continue;
+            nextArr.push(item);
+        }
+    }
+    catch (e) {
+        console.error('uniqueBy() failed.');
+        console.error(e);
+    }
+    return nextArr;
+};
+exports.uniqueBy = uniqueBy;
+const unique = (arr) => [...Array.from(new Set(arr))];
+exports.unique = unique;

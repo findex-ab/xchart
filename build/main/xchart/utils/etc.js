@@ -1,10 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.remap = exports.median = exports.avg = exports.sum = exports.range = exports.smax = exports.smin = exports.slt = exports.sgt = exports.smoothstep = exports.fract = exports.clamp = exports.lerp = void 0;
-const lerp = (vFrom, vTo, scale) => {
+exports.remap = exports.median = exports.avg = exports.sum = exports.stepRange = exports.range = exports.smax = exports.smin = exports.slt = exports.sgt = exports.smoothstep = exports.fract = exports.clamp = exports.lerpDates = exports.lerp = void 0;
+const lerp = (vFrom, vTo, scale, clampScale = false) => {
+    scale = clampScale ? (0, exports.clamp)(scale, 0, 1) : scale;
     return vFrom + (vTo - vFrom) * scale;
 };
 exports.lerp = lerp;
+const lerpDates = (vFrom, vTo, scale) => {
+    return new Date((0, exports.lerp)(vFrom.getTime(), vTo.getTime(), scale));
+};
+exports.lerpDates = lerpDates;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 exports.clamp = clamp;
 const fract = (x) => x - Math.floor(x);
@@ -36,6 +41,14 @@ const smax = (a, b, k) => {
 exports.smax = smax;
 const range = (n) => Array.from(Array(n).keys());
 exports.range = range;
+const stepRange = (n, step = 1) => {
+    const result = [];
+    for (let i = 0; i < n; i += step) {
+        result.push(i);
+    }
+    return result;
+};
+exports.stepRange = stepRange;
 const sum = (arr) => arr.reduce((a, b) => (a + b), 0);
 exports.sum = sum;
 const avg = (arr) => arr.length <= 0 ? 0 : ((0, exports.sum)(arr) / arr.length);

@@ -9,11 +9,12 @@ export type ChartData = {
 };
 
 export type ChartAxis = {
-  range: Range;
+  range: Range | RangeScalar[];
   color?: string;
   font?: string;
   format?: (x: RangeScalar) => string;
   divisor?: number;
+  ticks?: number;
 }
 
 export type ChartPoint = {

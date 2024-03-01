@@ -1,6 +1,16 @@
-export const lerp = (vFrom: number, vTo: number, scale: number) => {
+export const lerp = (
+  vFrom: number,
+  vTo: number,
+  scale: number,
+  clampScale: boolean = false
+) => {
+  scale = clampScale ? clamp(scale, 0, 1) : scale;
   return vFrom + (vTo - vFrom) * scale;
 };
+
+export const lerpDates = (vFrom: Date, vTo: Date, scale: number): Date => {
+  return new Date(lerp(vFrom.getTime(), vTo.getTime(), scale));
+}
 
 export const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
@@ -36,6 +46,14 @@ export const smax = (a: number, b: number, k: number) => {
 };
 
 export const range = (n: number): number[] => Array.from(Array(n).keys());
+
+export const stepRange = (n: number, step: number = 1): number[] => {
+  const result: number[] = [];
+  for (let i = 0; i < n; i += step) {
+    result.push(i);
+  }
+  return result;
+};
 
 export const sum = (arr: number[]): number => arr.reduce((a, b) => (a + b), 0);
 

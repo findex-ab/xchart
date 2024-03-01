@@ -1,15 +1,19 @@
 import * as fns from 'date-fns';
+import { getDatesBetween, isDate } from '../utils/date';
 import { isNumber } from '../utils/is';
 import { range } from '../utils/etc';
 export const rangeToArray = (r) => {
+    if (Array.isArray(r))
+        return r.sort((a, b) => fns.compareAsc(a, b));
     if (r.array)
         return r.array.sort((a, b) => {
             return fns.compareAsc(a, b);
         });
     const a = r.start;
     const b = r.end;
-    if (fns.isDate(a) && fns.isDate(b)) {
-        return []; //getDatesBetween(a, b, r.step);
+    if (isDate(a) && isDate(b)) {
+        //return fns.eachMonthOfInterval({start: a, end: b})
+        return getDatesBetween(a, b, r.step);
     }
     if (isNumber(a) && isNumber(b)) {
         if (r.step) {

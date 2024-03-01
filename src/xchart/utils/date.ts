@@ -7,7 +7,7 @@ export const getDatesBetween = (startDate: Date, endDate: Date, stepMs?: number)
   );
 
 
-  if (stepMs) {
+  if (stepMs && false) {
     while (currentDate <= endDate) {
       dates.push(currentDate);
       currentDate = new Date(
@@ -20,8 +20,8 @@ export const getDatesBetween = (startDate: Date, endDate: Date, stepMs?: number)
 
       currentDate = new Date(
         currentDate.getFullYear(),
-        currentDate.getMonth(),
-        currentDate.getDate() + 1,
+        currentDate.getMonth() + 1,
+        currentDate.getDate(),
       );
     }
   }
@@ -52,4 +52,11 @@ export const minDate = (dates:  Date[]) => {
   }
 
   return min;
+}
+
+
+export const isDate = (x: any): x is Date => {
+  if (!x) return false;
+  if (typeof x !== 'object') return false;
+  return !!x.getDay;
 }

@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.minDate = exports.maxDate = exports.getDatesBetween = void 0;
+exports.isDate = exports.minDate = exports.maxDate = exports.getDatesBetween = void 0;
 const getDatesBetween = (startDate, endDate, stepMs) => {
     const dates = [];
     let currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-    if (stepMs) {
+    if (stepMs && false) {
         while (currentDate <= endDate) {
             dates.push(currentDate);
             currentDate = new Date(currentDate.getTime() + stepMs);
@@ -13,7 +13,7 @@ const getDatesBetween = (startDate, endDate, stepMs) => {
     else {
         while (currentDate <= endDate) {
             dates.push(currentDate);
-            currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
+            currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, currentDate.getDate());
         }
     }
     return dates;
@@ -39,3 +39,11 @@ const minDate = (dates) => {
     return min;
 };
 exports.minDate = minDate;
+const isDate = (x) => {
+    if (!x)
+        return false;
+    if (typeof x !== 'object')
+        return false;
+    return !!x.getDay;
+};
+exports.isDate = isDate;
