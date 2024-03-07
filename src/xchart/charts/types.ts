@@ -3,13 +3,13 @@ import { Vector } from "../utils/vector";
 import { ChartInstance, Visd } from "../visd";
 
 export type ChartData = {
-  values: number[];
+  values?: number[];
   labels?: string[];
   colors?: string[];
 };
 
 export type ChartAxis = {
-  range: Range | RangeScalar[];
+  range?: Range | RangeScalar[];
   color?: string;
   font?: string;
   format?: (x: RangeScalar) => string;

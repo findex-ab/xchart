@@ -1,3 +1,6 @@
+
+import * as fns from 'date-fns';
+
 export const getDatesBetween = (startDate: Date, endDate: Date, stepMs?: number) => {
   const dates = [];
   let currentDate = new Date(
@@ -7,12 +10,10 @@ export const getDatesBetween = (startDate: Date, endDate: Date, stepMs?: number)
   );
 
 
-  if (stepMs && false) {
+  if (stepMs) {
     while (currentDate <= endDate) {
       dates.push(currentDate);
-      currentDate = new Date(
-        currentDate.getTime() + stepMs
-      );
+      currentDate = fns.addMilliseconds(currentDate, stepMs); 
     }
   } else {
     while (currentDate <= endDate) {

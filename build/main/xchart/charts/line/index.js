@@ -163,7 +163,7 @@ const measureText = (ctx, options) => {
     return m;
 };
 const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
-    const yValues = data.values.map((v) => Math.max(0, v));
+    const yValues = data.values.map((v) => v);
     const xValues = (options.xAxis ? (0, range_1.rangeToArray)(options.xAxis.range) : data.labels || []) ||
         data.labels ||
         yValues;
@@ -173,8 +173,8 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
     const minY = Math.min(...yValues);
     let peakX = 0;
     let minX = 0;
-    if ((0, date_1.isDate)(xValues[0])) {
-        const dates = [...xValues];
+    if ((0, date_1.isDate)(xValues[0]) || ((0, is_1.isString)(xValues[0]) && xValues[0].includes('T') && xValues[0].includes('Z'))) {
+        const dates = [...xValues].map(it => new Date(it));
         const sorted = dates.sort((a, b) => fns.compareAsc(a, b));
         peakX = sorted[sorted.length - 1].getTime();
         minX = sorted[0].getTime();
@@ -219,13 +219,13 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             (0, etc_1.clamp)(Math.log10(peakY), Math.max(1, 4 * (size.x / vh)), 100));
         const yStep = Math.max(1, Math.ceil(vh / numYTicks));
         const yTicks = (0, etc_1.stepRange)(vh, yStep);
-        const yTickValues = yTicks.map((i) => (0, etc_1.lerp)(0, peakY, i / ((yTicks.length - 1) * yStep)));
-        const yTickObjects = yTicks.map((i) => {
+        const yTickValues = yTicks.map((st) => (0, etc_1.lerp)(minY, peakY, st / ((yTicks.length - 1) * yStep)));
+        const yTickObjects = yTicks.map((st, i) => {
             var _a, _b;
             return {
-                text: formatY(yTickValues[Math.floor(i / yStep)]),
-                value: yTickValues[Math.floor(i / yStep)],
-                pos: (0, vector_1.VEC2)(padding.left, vh - i - padding.bottom),
+                text: formatY(yTickValues[i]),
+                value: yTickValues[i],
+                pos: (0, vector_1.VEC2)(padding.left, (vh - st) - padding.bottom),
                 font: (_a = options.yAxis) === null || _a === void 0 ? void 0 : _a.font,
                 color: (_b = options.yAxis) === null || _b === void 0 ? void 0 : _b.color
             };
@@ -235,12 +235,12 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
         const maxYTickWidth = Math.max(...yTickWidths);
         padding.left += (maxYTickWidth + 8);
         yTickObjects.forEach((obj) => {
-            drawText(ctx, Object.assign(Object.assign({}, obj), { pos: obj.pos.add((0, vector_1.VEC2)(0, -16)) }));
-            drawLine(ctx, (0, vector_1.VEC2)(obj.pos.x, obj.pos.y), (0, vector_1.VEC2)(obj.pos.x + size.x, obj.pos.y), GRID_COLOR, 2);
+            drawText(ctx, Object.assign(Object.assign({}, obj), { pos: obj.pos.add((0, vector_1.VEC2)(0, -4)) }));
+            drawLine(ctx, (0, vector_1.VEC2)(obj.pos.x, obj.pos.y), (0, vector_1.VEC2)(obj.pos.x + (size.x - 0.5 * padding.left), obj.pos.y), GRID_COLOR, 2);
         });
         // ===================== X ticks
         const w = (0, etc_1.remap)(instance.resolution.x, 0, instance.resolution.x, padding.left, instance.resolution.x - padding.right); //instance.resolution.x - padding.left;
-        const xStep = Math.max(1, Math.round((w + padding.left) / numXTicks));
+        const xStep = Math.max(1, Math.ceil((w + padding.left) / numXTicks));
         const xTicks = (0, etc_1.stepRange)(w - padding.left, xStep);
         const xTickValues = xTicks.map((i) => new Date((0, etc_1.lerp)(minX, peakX, i / ((xTicks.length - 1) * xStep))));
         const xTickObjects = xTicks.map((i) => {
@@ -326,6 +326,58 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             //); 
             return (0, etc_1.clamp)(Math.ceil((ni * (points.length))), 0, points.length - 1);
         };
+        const getCoord = (pos) => {
+            const x = (() => {
+                const numSteps = xValues.length;
+                const stepSize = Math.ceil(size.x / numSteps);
+                return Math.floor(pos.x / stepSize) * stepSize;
+            })();
+            const y = (() => {
+                const numSteps = yValues.length;
+                const stepSize = Math.ceil(size.y / numSteps);
+                return Math.floor(pos.y / stepSize) * stepSize;
+            })();
+            return (0, vector_1.VEC2)(x, y);
+        };
+        const getDataCoord = (pos) => {
+            const coord = getCoord(pos);
+            const ix = (0, etc_1.clamp)(Math.floor(coord.x / Math.ceil(size.x / xValues.length)), 0, xValues.length - 1);
+            const iy = (0, etc_1.clamp)((yValues.length - 1) - Math.floor(coord.y / Math.ceil(size.y / yValues.length)), 0, yValues.length - 1);
+            return (0, vector_1.VEC2)(ix, iy);
+        };
+        const drawStuff = () => {
+            const xy = getCoord(instance.mouse);
+            drawText(ctx, {
+                text: `${Math.floor(xy.x / Math.ceil(w / xValues.length))} | ${xValues.length}`,
+                color: 'black',
+                pos: (0, vector_1.VEC2)(w / 2, h / 2)
+            });
+            const drawRealX = () => {
+                const numSteps = xValues.length;
+                const stepSize = Math.ceil(w / numSteps);
+                let x = instance.mouse.x;
+                x = Math.floor(x / stepSize) * stepSize;
+                drawPoint(ctx, (0, vector_1.VEC2)(x, vh - 30), 'green', 10);
+                for (let i = 0; i < numSteps; i++) {
+                    drawLine(ctx, (0, vector_1.VEC2)(i * stepSize, vh - 8), (0, vector_1.VEC2)(i * stepSize, vh - 60), 'red', 2);
+                }
+            };
+            const drawRealY = () => {
+                const numSteps = yValues.length;
+                const stepSize = Math.ceil(h / numSteps);
+                let y = instance.mouse.y;
+                y = Math.floor(y / stepSize) * stepSize;
+                drawPoint(ctx, (0, vector_1.VEC2)(0, y), 'green', 10);
+                for (let i = 0; i < numSteps; i++) {
+                    drawLine(ctx, (0, vector_1.VEC2)(0, i * stepSize), (0, vector_1.VEC2)(60, i * stepSize), 'blue', 2);
+                }
+            };
+            drawRealX();
+            drawRealY();
+            drawPoint(ctx, (0, vector_1.VEC2)(xy.x, xy.y), 'purple', 10);
+            //drawTickX();
+        };
+        drawStuff();
         const mouseInteraction = () => {
             drawLine(ctx, (0, vector_1.VEC2)(instance.mouse.x, vh), (0, vector_1.VEC2)(instance.mouse.x, 0), GRID_COLOR, 2);
             let mx = (app.mouse.x - rect.x);

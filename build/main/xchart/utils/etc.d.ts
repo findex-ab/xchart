@@ -13,3 +13,4 @@ export declare const sum: (arr: number[]) => number;
 export declare const avg: (arr: number[]) => number;
 export declare const median: (arr: number[]) => number;
 export declare const remap: (value: number, originalMin: number, originalMax: number, nextMin: number, nextMax: number) => number;
+export declare const remapArray: (arr: number[], nextMin: number, nextMax: number) => number[];

@@ -1,8 +1,11 @@
+import { isDate } from "./date";
 export const lerp = (vFrom, vTo, scale, clampScale = false) => {
     scale = clampScale ? clamp(scale, 0, 1) : scale;
     return vFrom + (vTo - vFrom) * scale;
 };
 export const lerpDates = (vFrom, vTo, scale) => {
+    vFrom = isDate(vFrom) ? vFrom : new Date(vFrom);
+    vTo = isDate(vTo) ? vTo : new Date(vTo);
     return new Date(lerp(vFrom.getTime(), vTo.getTime(), scale));
 };
 export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -39,3 +42,9 @@ export const sum = (arr) => arr.reduce((a, b) => (a + b), 0);
 export const avg = (arr) => arr.length <= 0 ? 0 : (sum(arr) / arr.length);
 export const median = (arr) => arr.length <= 0 ? 0 : [...arr].sort((a, b) => a - b)[Math.floor(arr.length / 2)];
 export const remap = (value, originalMin, originalMax, nextMin, nextMax) => nextMin + (((value - originalMin) / (originalMax - originalMin)) * (nextMax - nextMin));
+export const remapArray = (arr, nextMin, nextMax) => {
+    return arr.map((_, i) => {
+        const ni = i / arr.length;
+        return lerp(nextMin, nextMax, ni);
+    });
+};

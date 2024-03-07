@@ -5,21 +5,25 @@ export interface IVector {
   x: number;
   y: number;
   z?: number;
+  w?: number;
 }
 
 export class Vector implements IVector {
   _x: number = 0;
   _y: number = 0;
   _z?: number = 0;
+  _w?: number = 0;
 
   constructor(
     x: number = 0,
     y: number = 0,
-    z?: number
+    z?: number,
+    w?: number
   ) {
     this._x = x;
     this._y = y;
     this._z = z;
+    this._w = w;
   }
 
   get x(): number {
@@ -32,6 +36,10 @@ export class Vector implements IVector {
 
   get z(): number {
     return this._z || 0;
+  }
+
+  get w(): number {
+    return this._w || 0;
   }
 
   get xy(): [number, number] {
@@ -50,7 +58,12 @@ export class Vector implements IVector {
     this._z = value;
   }
 
+  set w(value: number) {
+    this._w = value;
+  }
+
   count(): number {
+    if (typeof this._w === 'number') return 4;
     if (typeof this._z === 'number') return 3;
     return 2;
   }
@@ -65,6 +78,7 @@ export class Vector implements IVector {
     switch (count) {
       case 2: return VEC2(this.x * s, this.y * s);
       case 3: return VEC3(this.x * s, this.y * s, this.z * s);
+      case 4: return VEC4(this.x * s, this.y * s, this.z * s, this.w * s);
       default: throw new Error(`Vector has ${count} components`);
     }
   }
@@ -75,6 +89,7 @@ export class Vector implements IVector {
     switch (count) {
       case 2: return VEC2(this.x + b.x, this.y + b.y);
       case 3: return VEC3(this.x + b.x, this.y + b.y, this.z + b.z);
+      case 4: return VEC4(this.x + b.x, this.y + b.y, this.z + b.z, this.w + b.w);
       default: throw new Error(`Vector has ${count} components`);
     }
   }
@@ -85,6 +100,7 @@ export class Vector implements IVector {
     switch (count) {
       case 2: return VEC2(this.x - b.x, this.y - b.y);
       case 3: return VEC3(this.x - b.x, this.y - b.y, this.z - b.z);
+      case 4: return VEC4(this.x - b.x, this.y - b.y, this.z - b.z, this.w - b.w);
       default: throw new Error(`Vector has ${count} components`);
     }
   }
@@ -95,6 +111,7 @@ export class Vector implements IVector {
     switch (count) {
       case 2: return VEC2(this.x * b.x, this.y * b.y);
       case 3: return VEC3(this.x * b.x, this.y * b.y, this.z * b.z);
+      case 4: return VEC4(this.x * b.x, this.y * b.y, this.z * b.z, this.w * b.w);
       default: throw new Error(`Vector has ${count} components`);
     }
   } 
@@ -104,6 +121,7 @@ export class Vector implements IVector {
     switch (count) {
       case 2: return VEC2(f(this.x), f(this.y));
       case 3: return VEC3(f(this.x), f(this.y), f(this.z));
+      case 4: return VEC4(f(this.x), f(this.y), f(this.z), f(this.w));
       default: throw new Error(`Vector has ${count} components`);
     }
   }
@@ -115,6 +133,7 @@ export class Vector implements IVector {
   }
 
   toRGB(precision: number = 3) {
+    if (this.count() >= 4) return `rgba(${this.x.toFixed(precision)}, ${this.y.toFixed(precision)}, ${this.z.toFixed(precision)}, ${this.w.toFixed(precision)})`;
     return `rgb(${this.x.toFixed(precision)}, ${this.y.toFixed(precision)}, ${this.z.toFixed(precision)})`
   }
 
@@ -131,6 +150,12 @@ export class Vector implements IVector {
         mix(this.y, b.y, scale),
         mix(this.z || 0, b.z || 0, scale)
       );
+      case 4: return VEC4(
+        mix(this.x, b.x, scale),
+        mix(this.y, b.y, scale),
+        mix(this.z || 0, b.z || 0, scale),
+        mix(this.w || 0, b.w || 0, scale),
+      );
       default: throw new Error(`Vector has ${count} components`);
     } 
   }
@@ -143,7 +168,8 @@ export class Vector implements IVector {
     const dx = this.x * b.x;
     const dy = this.y * b.y;
     const dz = this.z * b.z;
-    return dx + dy + dz;
+    const dw = this.w * b.w;
+    return dx + dy + dz + dw;
   }
 
   clone() {
@@ -151,6 +177,7 @@ export class Vector implements IVector {
     switch (count) {
       case 2: return VEC2(this.x, this.y);
       case 3: return VEC3(this.x, this.y, this.z);
+      case 4: return VEC4(this.x, this.y, this.z, this.w);
       default: throw new Error(`Vector has ${count} components`);
     }
   }
@@ -163,7 +190,7 @@ export class Vector implements IVector {
   }
 
   mag(): number {
-   return Math.sqrt(Math.pow(this.x || 0, 2.0) + Math.pow(this.y || 0, 2.0) + Math.pow(this.z || 0, 2.0)); 
+   return Math.sqrt(Math.pow(this.x || 0, 2.0) + Math.pow(this.y || 0, 2.0) + Math.pow(this.z || 0, 2.0) + Math.pow(this.w || 0, 2)); 
   }
 
   str():string {
@@ -171,6 +198,7 @@ export class Vector implements IVector {
     switch (count) {
       case 2: return `${this.x} ${this.y}`;
       case 3: return `${this.x} ${this.y} ${this.z}`;
+      case 4: return `${this.x} ${this.y} ${this.z} ${this.w}`;
       default: {
         throw new Error(`Vector has ${count} components.`);
       }; break;
@@ -182,5 +210,6 @@ export class Vector implements IVector {
   }
 }
 
+export const VEC4 = (x: number, y: number, z: number, w: number) => new Vector(x, y, z, w);
 export const VEC3 = (x: number, y: number, z: number) => new Vector(x, y, z);
 export const VEC2 = (x: number, y: number) => new Vector(x, y);

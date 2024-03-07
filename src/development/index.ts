@@ -3,7 +3,7 @@ import { VEC2, VisdApp, lerp, noise, range, uniqueBy } from "../xchart";
 import * as fns from 'date-fns';
 import { padNumberLeft } from "../xchart/utils/number";
 import data_ from '../data/data.json';
-import { maxDate, minDate } from '../xchart/utils/date';
+import { getDatesBetween, maxDate, minDate } from '../xchart/utils/date';
 
 export const ONE_MINUTE = 1000 * 60;
 export const ONE_HOUR = ONE_MINUTE * 60;
@@ -95,27 +95,31 @@ const App = X('div', {
       container: document.body,
     });
 
-    const size = VEC2(640, 480).scale(1.2);
-    const resolution = size.scale(1.6);
+    const size = VEC2(640, 480).scale(1.);
+    const resolution = size.scale(1.);
 
      const sortedData = mergePerformanceData(data).sort((a, b) => {
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     });
 
-    const dataDates = sortedData.map((it) => new Date(it.date));
-    const dataValues = sortedData.map((it) => it.accMonetaryPerf);
-    
-    const data2:DataType[] = range(N).map(i => {
-      const u1 =         (i / N) * FREQ;
-      const u2 = (u1 + 4.482185) * FREQ; 
-      return {
-        date: randomDate(u1),
-        value: 100*randomValue(u2)
-      }
-    }).sort((a, b) => fns.compareAsc(a.date, b.date));
+    const dates = range(200);//getDatesBetween(new Date('2024-01-01'), new Date(), ONE_DAY);
+    const values = dates.map((i) => {
+      return noise(((i/dates.length)*6)+2.382185*1.5948872);
+    });
+    //const dataDates = sortedData.map((it) => new Date(it.date));
+    //const dataValues = sortedData.map((it) => it.accMonetaryPerf);
+    //
+    //const data2:DataType[] = range(N).map(i => {
+    //  const u1 =         (i / N) * FREQ;
+    //  const u2 = (u1 + 4.482185) * FREQ; 
+    //  return {
+    //    date: randomDate(u1),
+    //    value: 100*randomValue(u2)
+    //  }
+    //}).sort((a, b) => fns.compareAsc(a.date, b.date));
 
-    const values = data2.map(d => d.value);
-    const dates = data2.map(d => d.date);
+    //const values = data2.map(d => d.value);
+    //const dates = data2.map(d => d.date);
 
     const instance = vis.insert({
       uid: '5492',
@@ -145,14 +149,15 @@ const App = X('div', {
           fontSize: '1rem',
           thick: 4,
           xAxis: {
+            font: '12px arial',
             format: (x) => {
-              return fns.format(x, 'MMM dd yy')
+              return fns.format(x, 'H:m:s MMM E yy')
             },
-            range: {
-              start: minDate(dates),
-              end: maxDate(dates),
-              step:  2_629_746_000 
-            }
+            range: dates 
+            //ticks: 6
+          },
+          yAxis: {
+            range: values
           },
           callback: (instance, key, value, index) => {
             instance.setTooltipBody(
@@ -175,9 +180,6 @@ const App = X('div', {
       children: [
         X('div', {
           style: {
-            borderStyle: 'solid',
-            borderWidth: '2px',
-            borderColor: 'black',
             width: `${size.x}px`,
             height: `${size.y}px`
           },

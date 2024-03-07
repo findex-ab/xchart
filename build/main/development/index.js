@@ -96,18 +96,23 @@ const App = (0, xel_1.X)('div', {
         const sortedData = mergePerformanceData(data).sort((a, b) => {
             return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
-        const dataDates = sortedData.map((it) => new Date(it.date));
-        const dataValues = sortedData.map((it) => it.accMonetaryPerf);
-        const data2 = (0, xchart_1.range)(N).map(i => {
-            const u1 = (i / N) * FREQ;
-            const u2 = (u1 + 4.482185) * FREQ;
-            return {
-                date: randomDate(u1),
-                value: 100 * randomValue(u2)
-            };
-        }).sort((a, b) => fns.compareAsc(a.date, b.date));
-        const values = data2.map(d => d.value);
-        const dates = data2.map(d => d.date);
+        const dates = (0, date_1.getDatesBetween)(new Date('2024-01-01'), new Date(), exports.ONE_DAY);
+        const values = dates.map((_, i) => {
+            return (0, xchart_1.noise)((i / dates.length) * 10.291294) - 2.0 * (0, xchart_1.noise)(44.2981295 + (i / dates.length) * 15.291294);
+        });
+        //const dataDates = sortedData.map((it) => new Date(it.date));
+        //const dataValues = sortedData.map((it) => it.accMonetaryPerf);
+        //
+        //const data2:DataType[] = range(N).map(i => {
+        //  const u1 =         (i / N) * FREQ;
+        //  const u2 = (u1 + 4.482185) * FREQ; 
+        //  return {
+        //    date: randomDate(u1),
+        //    value: 100*randomValue(u2)
+        //  }
+        //}).sort((a, b) => fns.compareAsc(a.date, b.date));
+        //const values = data2.map(d => d.value);
+        //const dates = data2.map(d => d.date);
         const instance = vis.insert({
             uid: '5492',
             config: {
@@ -135,13 +140,15 @@ const App = (0, xel_1.X)('div', {
                 thick: 4,
                 xAxis: {
                     format: (x) => {
-                        return fns.format(x, 'MMM dd yy');
+                        return fns.format(x, 'H:m:s MMM E yy');
                     },
                     range: {
                         start: (0, date_1.minDate)(dates),
                         end: (0, date_1.maxDate)(dates),
-                        step: 2629746000
-                    }
+                        step: 2629746000,
+                        array: dates
+                    },
+                    ticks: 6
                 },
                 callback: (instance, key, value, index) => {
                     instance.setTooltipBody((0, xel_1.X)('div', {

@@ -1,12 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.remap = exports.median = exports.avg = exports.sum = exports.stepRange = exports.range = exports.smax = exports.smin = exports.slt = exports.sgt = exports.smoothstep = exports.fract = exports.clamp = exports.lerpDates = exports.lerp = void 0;
+exports.remapArray = exports.remap = exports.median = exports.avg = exports.sum = exports.stepRange = exports.range = exports.smax = exports.smin = exports.slt = exports.sgt = exports.smoothstep = exports.fract = exports.clamp = exports.lerpDates = exports.lerp = void 0;
+const date_1 = require("./date");
 const lerp = (vFrom, vTo, scale, clampScale = false) => {
     scale = clampScale ? (0, exports.clamp)(scale, 0, 1) : scale;
     return vFrom + (vTo - vFrom) * scale;
 };
 exports.lerp = lerp;
 const lerpDates = (vFrom, vTo, scale) => {
+    vFrom = (0, date_1.isDate)(vFrom) ? vFrom : new Date(vFrom);
+    vTo = (0, date_1.isDate)(vTo) ? vTo : new Date(vTo);
     return new Date((0, exports.lerp)(vFrom.getTime(), vTo.getTime(), scale));
 };
 exports.lerpDates = lerpDates;
@@ -57,3 +60,10 @@ const median = (arr) => arr.length <= 0 ? 0 : [...arr].sort((a, b) => a - b)[Mat
 exports.median = median;
 const remap = (value, originalMin, originalMax, nextMin, nextMax) => nextMin + (((value - originalMin) / (originalMax - originalMin)) * (nextMax - nextMin));
 exports.remap = remap;
+const remapArray = (arr, nextMin, nextMax) => {
+    return arr.map((_, i) => {
+        const ni = i / arr.length;
+        return (0, exports.lerp)(nextMin, nextMax, ni);
+    });
+};
+exports.remapArray = remapArray;

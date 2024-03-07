@@ -1,3 +1,5 @@
+import { isDate } from "./date";
+
 export const lerp = (
   vFrom: number,
   vTo: number,
@@ -9,6 +11,8 @@ export const lerp = (
 };
 
 export const lerpDates = (vFrom: Date, vTo: Date, scale: number): Date => {
+  vFrom = isDate(vFrom) ? vFrom : new Date(vFrom);
+  vTo = isDate(vTo) ? vTo :  new Date(vTo);
   return new Date(lerp(vFrom.getTime(), vTo.getTime(), scale));
 }
 
@@ -55,6 +59,17 @@ export const stepRange = (n: number, step: number = 1): number[] => {
   return result;
 };
 
+export const rangeFromTo = (vFrom: number, vTo: number, step: number = 1) => {
+  let result: number[] = [];
+  let n = vFrom;
+  while (n < vTo) {
+    result.push(n);
+    n += step;
+  }
+
+  return result;
+}
+
 export const sum = (arr: number[]): number => arr.reduce((a, b) => (a + b), 0);
 
 export const avg = (arr: number[]): number => arr.length <= 0 ? 0 : (sum(arr) / arr.length);
@@ -69,3 +84,11 @@ export const remap = (
   nextMin: number,
   nextMax: number
 ): number => nextMin + (((value - originalMin) / (originalMax - originalMin)) * (nextMax - nextMin));
+
+
+export const remapArray = (arr: number[], nextMin: number, nextMax: number): number[] => {
+  return arr.map((_, i) => {
+    const ni = i / arr.length;
+    return lerp(nextMin, nextMax, ni);
+  });
+}
