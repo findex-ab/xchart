@@ -65,6 +65,7 @@ export interface Visd {
     mouse: Vector;
 }
 export type VisdApplication = {
+    visd: Visd;
     start: () => void;
     stop: () => void;
     insert: (instance: ChartInstanceInit) => ChartInstance;

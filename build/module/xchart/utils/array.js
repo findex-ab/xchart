@@ -33,3 +33,9 @@ export const uniqueBy = (arr, key) => {
     return nextArr;
 };
 export const unique = (arr) => [...Array.from(new Set(arr))];
+export const removeItemAtIndex = (array, index) => {
+    if (index > -1 && index < array.length) {
+        array.splice(index, 1);
+    }
+    return array;
+};

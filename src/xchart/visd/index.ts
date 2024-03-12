@@ -18,6 +18,7 @@ import {
 import { Tooltip } from "../components/tooltip";
 import { VisdTooltipProps } from "../components/tooltip/types";
 import { AABB, aabbVSPoint2D } from "../utils/aabb";
+import { removeItemAtIndex, uniqueBy } from "../utils/array";
 import {  clamp, smoothstep } from "../utils/etc";
 import { VEC2, Vector } from "../utils/vector";
 import { X, XElement, mount, xReactive } from "xel";
@@ -90,6 +91,7 @@ export interface Visd {
 }
 
 export type VisdApplication = {
+  visd: Visd;
   start: () => void;
   stop: () => void;
   insert: (instance: ChartInstanceInit) => ChartInstance;
@@ -166,9 +168,12 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
   //mount(tooltip, { target: container }); 
 
   const update = (visd: Visd) => {
+
+    
+    
     if (app.instances.length >= INSTANCE_LIMIT) {
+      app.instances = uniqueBy(app.instances, 'uid');
       console.warn(`Instance limit reached. ${app.instances.length}`);
-      stop();
       return;
     }
     for (let i = 0; i < app.instances.length; i++) {
@@ -349,7 +354,9 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
   const insert = (instance: ChartInstanceInit): ChartInstance => {
     const old = app.instances.find((inst) => inst.uid === instance.uid);
     if (old) {
+      //return old;
       old.cancel();
+      app.instances = app.instances.filter(it => it.uid !== instance.uid);
     }
 
     const sizes = computeSizes(
@@ -399,6 +406,13 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       xel: (() => {
         const xel: XElement = X<{ instance: ChartInstance }>('div', {
           onMount(self) {
+            const old = app.instances.find((inst) => inst.uid === instance.uid);
+
+            if (old) {
+              return;
+             // old.cancel();
+            }
+            
             app.instances.push(inst);
           },
           render(props, state) {
@@ -429,13 +443,15 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     },
   }; 
 
-  return { start, stop, insert, charts };
+  return { start, stop, insert, charts, visd: app };
 };
 
-let vapp: VisdApplication | undefined = undefined;
+// @ts-ignore
+let vapp: VisdApplication | undefined = undefined | (window.vapp as VisdApplication);
 
 export const VisdApp = (cfg: VisdConfig): VisdApplication => {
   if (vapp) return vapp;
-  vapp = createApp(cfg);
+  // @ts-ignore
+  window.vapp = vapp = createApp(cfg);
   return vapp;
 };

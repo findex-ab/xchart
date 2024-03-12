@@ -2,19 +2,23 @@ export interface IVector {
     x: number;
     y: number;
     z?: number;
+    w?: number;
 }
 export declare class Vector implements IVector {
     _x: number;
     _y: number;
     _z?: number;
-    constructor(x?: number, y?: number, z?: number);
+    _w?: number;
+    constructor(x?: number, y?: number, z?: number, w?: number);
     get x(): number;
     get y(): number;
     get z(): number;
+    get w(): number;
     get xy(): [number, number];
     set x(value: number);
     set y(value: number);
     set z(value: number);
+    set w(value: number);
     count(): number;
     luma(): number;
     scale(s: number): Vector;
@@ -33,5 +37,6 @@ export declare class Vector implements IVector {
     str(): string;
     toString(): string;
 }
+export declare const VEC4: (x: number, y: number, z: number, w: number) => Vector;
 export declare const VEC3: (x: number, y: number, z: number) => Vector;
 export declare const VEC2: (x: number, y: number) => Vector;

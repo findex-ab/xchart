@@ -39,3 +39,10 @@ export const uniqueBy = <T, KV = string>(arr: T[], key: string | ((item: T) => K
 }
 
 export const unique = <T>(arr: T[]): T[] => [...Array.from(new Set(arr))] as T[]
+
+export const removeItemAtIndex = <T = any>(array: T[], index: number): T[] => {
+  if (index > -1 && index < array.length) {
+    array.splice(index, 1);
+  }
+  return array;
+}

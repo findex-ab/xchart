@@ -9,6 +9,7 @@ export declare const smin: (a: number, b: number, k: number) => number;
 export declare const smax: (a: number, b: number, k: number) => number;
 export declare const range: (n: number) => number[];
 export declare const stepRange: (n: number, step?: number) => number[];
+export declare const rangeFromTo: (vFrom: number, vTo: number, step?: number) => number[];
 export declare const sum: (arr: number[]) => number;
 export declare const avg: (arr: number[]) => number;
 export declare const median: (arr: number[]) => number;

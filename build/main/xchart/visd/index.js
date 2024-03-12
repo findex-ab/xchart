@@ -7,6 +7,7 @@ const line_1 = require("../charts/line");
 const types_2 = require("../charts/line/types");
 const tooltip_1 = require("../components/tooltip");
 const aabb_1 = require("../utils/aabb");
+const array_1 = require("../utils/array");
 const etc_1 = require("../utils/etc");
 const vector_1 = require("../utils/vector");
 const xel_1 = require("xel");
@@ -62,8 +63,8 @@ const createApp = (cfg) => {
     //mount(tooltip, { target: container }); 
     const update = (visd) => {
         if (app.instances.length >= INSTANCE_LIMIT) {
+            app.instances = (0, array_1.uniqueBy)(app.instances, 'uid');
             console.warn(`Instance limit reached. ${app.instances.length}`);
-            stop();
             return;
         }
         for (let i = 0; i < app.instances.length; i++) {
@@ -197,7 +198,9 @@ const createApp = (cfg) => {
     const insert = (instance) => {
         const old = app.instances.find((inst) => inst.uid === instance.uid);
         if (old) {
+            //return old;
             old.cancel();
+            app.instances = app.instances.filter(it => it.uid !== instance.uid);
         }
         const sizes = computeSizes(instance.config.resolution, instance.config.size, instance.config);
         const canvas = createCanvas(sizes.resolution, sizes.size);
@@ -223,6 +226,11 @@ const createApp = (cfg) => {
             }, xel: (() => {
                 const xel = (0, xel_1.X)('div', {
                     onMount(self) {
+                        const old = app.instances.find((inst) => inst.uid === instance.uid);
+                        if (old) {
+                            return;
+                            // old.cancel();
+                        }
                         app.instances.push(inst);
                     },
                     render(props, state) {
@@ -243,13 +251,15 @@ const createApp = (cfg) => {
             return (0, line_1.lineChart)(app, data, options);
         },
     };
-    return { start, stop, insert, charts };
+    return { start, stop, insert, charts, visd: app };
 };
-let vapp = undefined;
+// @ts-ignore
+let vapp = undefined | window.vapp;
 const VisdApp = (cfg) => {
     if (vapp)
         return vapp;
-    vapp = createApp(cfg);
+    // @ts-ignore
+    window.vapp = vapp = createApp(cfg);
     return vapp;
 };
 exports.VisdApp = VisdApp;

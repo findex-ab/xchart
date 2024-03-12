@@ -1,8 +1,7 @@
 import { X, mount } from "xel";
-import { VEC2, VisdApp, lerp, noise } from "../xchart";
+import { VEC2, VisdApp, lerp, noise, range } from "../xchart";
 import * as fns from 'date-fns';
 import data_ from '../data/data.json';
-import { getDatesBetween, maxDate, minDate } from '../xchart/utils/date';
 export const ONE_MINUTE = 1000 * 60;
 export const ONE_HOUR = ONE_MINUTE * 60;
 export const ONE_DAY = ONE_HOUR * 24;
@@ -62,14 +61,14 @@ const App = X('div', {
         const vis = VisdApp({
             container: document.body,
         });
-        const size = VEC2(640, 480).scale(1.2);
-        const resolution = size.scale(1.6);
+        const size = VEC2(640, 480).scale(1.);
+        const resolution = size.scale(1.);
         const sortedData = mergePerformanceData(data).sort((a, b) => {
             return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
-        const dates = getDatesBetween(new Date('2024-01-01'), new Date(), ONE_DAY);
-        const values = dates.map((_, i) => {
-            return noise((i / dates.length) * 10.291294) - 2.0 * noise(44.2981295 + (i / dates.length) * 15.291294);
+        const dates = range(200); //getDatesBetween(new Date('2024-01-01'), new Date(), ONE_DAY);
+        const values = dates.map((i) => {
+            return noise(((i / dates.length) * 6) + 2.382185 * 1.5948872);
         });
         //const dataDates = sortedData.map((it) => new Date(it.date));
         //const dataValues = sortedData.map((it) => it.accMonetaryPerf);
@@ -110,16 +109,15 @@ const App = X('div', {
                 fontSize: '1rem',
                 thick: 4,
                 xAxis: {
+                    font: '12px arial',
                     format: (x) => {
                         return fns.format(x, 'H:m:s MMM E yy');
                     },
-                    range: {
-                        start: minDate(dates),
-                        end: maxDate(dates),
-                        step: 2_629_746_000,
-                        array: dates
-                    },
-                    ticks: 6
+                    range: dates
+                    //ticks: 6
+                },
+                yAxis: {
+                    range: values
                 },
                 callback: (instance, key, value, index) => {
                     instance.setTooltipBody(X('div', {
@@ -137,9 +135,6 @@ const App = X('div', {
             children: [
                 X('div', {
                     style: {
-                        borderStyle: 'solid',
-                        borderWidth: '2px',
-                        borderColor: 'black',
                         width: `${size.x}px`,
                         height: `${size.y}px`
                     },

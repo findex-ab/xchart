@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.remapArray = exports.remap = exports.median = exports.avg = exports.sum = exports.stepRange = exports.range = exports.smax = exports.smin = exports.slt = exports.sgt = exports.smoothstep = exports.fract = exports.clamp = exports.lerpDates = exports.lerp = void 0;
+exports.remapArray = exports.remap = exports.median = exports.avg = exports.sum = exports.rangeFromTo = exports.stepRange = exports.range = exports.smax = exports.smin = exports.slt = exports.sgt = exports.smoothstep = exports.fract = exports.clamp = exports.lerpDates = exports.lerp = void 0;
 const date_1 = require("./date");
 const lerp = (vFrom, vTo, scale, clampScale = false) => {
     scale = clampScale ? (0, exports.clamp)(scale, 0, 1) : scale;
@@ -52,6 +52,16 @@ const stepRange = (n, step = 1) => {
     return result;
 };
 exports.stepRange = stepRange;
+const rangeFromTo = (vFrom, vTo, step = 1) => {
+    let result = [];
+    let n = vFrom;
+    while (n < vTo) {
+        result.push(n);
+        n += step;
+    }
+    return result;
+};
+exports.rangeFromTo = rangeFromTo;
 const sum = (arr) => arr.reduce((a, b) => (a + b), 0);
 exports.sum = sum;
 const avg = (arr) => arr.length <= 0 ? 0 : ((0, exports.sum)(arr) / arr.length);

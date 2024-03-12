@@ -1,7 +1,7 @@
 export type RangeScalar = Date | number | string;
 export type Range = {
-    start: RangeScalar;
-    end: RangeScalar;
+    start?: RangeScalar;
+    end?: RangeScalar;
     step?: number;
     array?: RangeScalar[];
 };

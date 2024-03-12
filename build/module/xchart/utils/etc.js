@@ -38,6 +38,15 @@ export const stepRange = (n, step = 1) => {
     }
     return result;
 };
+export const rangeFromTo = (vFrom, vTo, step = 1) => {
+    let result = [];
+    let n = vFrom;
+    while (n < vTo) {
+        result.push(n);
+        n += step;
+    }
+    return result;
+};
 export const sum = (arr) => arr.reduce((a, b) => (a + b), 0);
 export const avg = (arr) => arr.length <= 0 ? 0 : (sum(arr) / arr.length);
 export const median = (arr) => arr.length <= 0 ? 0 : [...arr].sort((a, b) => a - b)[Math.floor(arr.length / 2)];
