@@ -1,5 +1,6 @@
 import { ChartFunction, ChartInitFunction } from "../charts/types";
 import { VisdTooltipProps } from "../components/tooltip/types";
+import { IAction } from "../types/action";
 import { Vector } from "../utils/vector";
 import { XElement } from "xel";
 export interface VisdConfig {
@@ -35,6 +36,7 @@ export type ChartInstanceInit = {
     fun: ChartFunction;
     config: VisdInstanceConfig;
     active?: boolean;
+    onMount?: (instance: ChartInstance) => void;
 };
 export type ChartInstance = {
     uid: string;
@@ -48,7 +50,7 @@ export type ChartInstance = {
     mouse: Vector;
     invMouseDistance: number;
     tooltip: XElement<VisdTooltipProps, VisdTooltipProps>;
-    didRender?: boolean;
+    renderCount: number;
     setTooltipBody: (body: XElement) => void;
     cancel: () => void;
     resume: () => void;
@@ -63,6 +65,7 @@ export interface Visd {
     loopId: number;
     instances: ChartInstance[];
     mouse: Vector;
+    actionQueue: IAction[];
 }
 export type VisdApplication = {
     visd: Visd;
@@ -73,5 +76,6 @@ export type VisdApplication = {
         donut: ChartInitFunction;
         line: ChartInitFunction;
     };
+    request: (action: IAction) => void;
 };
 export declare const VisdApp: (cfg: VisdConfig) => VisdApplication;

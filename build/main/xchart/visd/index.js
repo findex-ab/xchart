@@ -6,6 +6,7 @@ const types_1 = require("../charts/donut/types");
 const line_1 = require("../charts/line");
 const types_2 = require("../charts/line/types");
 const tooltip_1 = require("../components/tooltip");
+const action_1 = require("../types/action");
 const aabb_1 = require("../utils/aabb");
 const array_1 = require("../utils/array");
 const etc_1 = require("../utils/etc");
@@ -58,7 +59,8 @@ const createApp = (cfg) => {
         running: false,
         loopId: -1,
         instances: [],
-        mouse: (0, vector_1.VEC2)(0, 0)
+        mouse: (0, vector_1.VEC2)(0, 0),
+        actionQueue: []
     };
     //mount(tooltip, { target: container }); 
     const update = (visd) => {
@@ -69,7 +71,9 @@ const createApp = (cfg) => {
         }
         for (let i = 0; i < app.instances.length; i++) {
             const instance = app.instances[i];
-            if (instance.didRender && instance.config.onlyActiveWhenMouseOver) {
+            const actions = app.actionQueue.filter(action => action.instanceUid === instance.uid);
+            const proceed = !!actions.find(action => action.type === action_1.EActionType.UPDATE);
+            if (instance.renderCount >= 60 && instance.config.onlyActiveWhenMouseOver && !proceed) {
                 const rect = instance.canvas.getBoundingClientRect();
                 const bounds = {
                     min: (0, vector_1.VEC2)(rect.x, rect.y),
@@ -84,7 +88,7 @@ const createApp = (cfg) => {
                     continue;
                 }
             }
-            if (!instance.active)
+            if (!instance.active && !proceed && instance.renderCount >= 60)
                 continue;
             let resolution = instance.config.resolution;
             let size = instance.config.size;
@@ -148,7 +152,8 @@ const createApp = (cfg) => {
             //instance.ctx.shadowColor = `rgba(0, 0, 0, ${shadowAlpha})`
             //instance.ctx.shadowBlur = shadowBlur
             app.instances[i].fun(app.instances[i]);
-            app.instances[i].didRender = true;
+            app.instances[i].renderCount += 1;
+            app.actionQueue = app.actionQueue.filter(action => action.instanceUid !== instance.uid);
         }
         //app.chartFunction()
     };
@@ -196,6 +201,7 @@ const createApp = (cfg) => {
         loop(0, app);
     };
     const insert = (instance) => {
+        const initCfg = instance;
         const old = app.instances.find((inst) => inst.uid === instance.uid);
         if (old) {
             //return old;
@@ -209,7 +215,7 @@ const createApp = (cfg) => {
         if (!ctx)
             throw new Error("unable to get context");
         const tooltip = tooltip_1.Tooltip.call({ position: (0, vector_1.VEC2)(app.mouse.x, app.mouse.y), opacity: 1.0, uid: instance.uid });
-        const inst = (0, xel_1.xReactive)(Object.assign(Object.assign({}, instance), { canvas: canvas, ctx, mouse: (0, vector_1.VEC2)(0, 0), invMouseDistance: 0, resolution: sizes.resolution, size: sizes.size, tooltip, setTooltipBody: (body) => {
+        const inst = (0, xel_1.xReactive)(Object.assign(Object.assign({}, instance), { renderCount: 0, canvas: canvas, ctx, mouse: (0, vector_1.VEC2)(0, 0), invMouseDistance: 0, resolution: sizes.resolution, size: sizes.size, tooltip, setTooltipBody: (body) => {
                 tooltip.state.body = body;
             }, active: true, cancel: () => {
                 inst.canvas.remove();
@@ -225,15 +231,19 @@ const createApp = (cfg) => {
                 inst.active = true;
             }, xel: (() => {
                 const xel = (0, xel_1.X)('div', {
-                    onMount(self) {
+                    onMount(_self) {
                         const old = app.instances.find((inst) => inst.uid === instance.uid);
                         if (old) {
-                            return;
-                            // old.cancel();
+                            old.renderCount = 0;
                         }
-                        app.instances.push(inst);
+                        else {
+                            app.instances.push(inst);
+                        }
+                        if (initCfg.onMount) {
+                            initCfg.onMount(old || inst);
+                        }
                     },
-                    render(props, state) {
+                    render(_props, _state) {
                         return (0, xel_1.X)('div', { children: [canvas, tooltip] });
                     }
                 });
@@ -251,7 +261,21 @@ const createApp = (cfg) => {
             return (0, line_1.lineChart)(app, data, options);
         },
     };
-    return { start, stop, insert, charts, visd: app };
+    const request = (action) => {
+        if (!action.instanceUid)
+            return;
+        if (!app.instances)
+            return;
+        const avail = app.instances.map(inst => inst.uid);
+        if (!avail.includes(action.instanceUid)) {
+            console.warn(`No such instance "${action.instanceUid}"`);
+            console.log('Available:');
+            console.log(avail);
+            return;
+        }
+        app.actionQueue.push(action);
+    };
+    return { start, stop, insert, charts, visd: app, request };
 };
 // @ts-ignore
 let vapp = undefined | window.vapp;

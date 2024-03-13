@@ -3,4 +3,8 @@ export * from './xchart/index';
 export * from './xchart/charts/donut';
 export * from './xchart/charts/line';
 export * from './xchart/charts/types';
+export * from './xchart/types/action';
+export * from './xchart/types/range';
+export * from './xchart/types/style';
+export * from './xchart/types';
 export * from './xchart/utils/vector';

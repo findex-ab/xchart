@@ -14,13 +14,6 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(require("./xchart/visd/index"), exports);
-__exportStar(require("./xchart/index"), exports);
-__exportStar(require("./xchart/charts/donut"), exports);
-__exportStar(require("./xchart/charts/line"), exports);
-__exportStar(require("./xchart/charts/types"), exports);
-__exportStar(require("./xchart/types/action"), exports);
-__exportStar(require("./xchart/types/range"), exports);
-__exportStar(require("./xchart/types/style"), exports);
-__exportStar(require("./xchart/types"), exports);
-__exportStar(require("./xchart/utils/vector"), exports);
+__exportStar(require("./action"), exports);
+__exportStar(require("./range"), exports);
+__exportStar(require("./style"), exports);

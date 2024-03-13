@@ -3,6 +3,7 @@ import { defaultDonutOptions, } from "../charts/donut/types";
 import { lineChart } from "../charts/line";
 import { defaultLineChartOptions, } from "../charts/line/types";
 import { Tooltip } from "../components/tooltip";
+import { EActionType } from "../types/action";
 import { aabbVSPoint2D } from "../utils/aabb";
 import { uniqueBy } from "../utils/array";
 import { clamp, smoothstep } from "../utils/etc";
@@ -55,7 +56,8 @@ const createApp = (cfg) => {
         running: false,
         loopId: -1,
         instances: [],
-        mouse: VEC2(0, 0)
+        mouse: VEC2(0, 0),
+        actionQueue: []
     };
     //mount(tooltip, { target: container }); 
     const update = (visd) => {
@@ -66,7 +68,9 @@ const createApp = (cfg) => {
         }
         for (let i = 0; i < app.instances.length; i++) {
             const instance = app.instances[i];
-            if (instance.didRender && instance.config.onlyActiveWhenMouseOver) {
+            const actions = app.actionQueue.filter(action => action.instanceUid === instance.uid);
+            const proceed = !!actions.find(action => action.type === EActionType.UPDATE);
+            if (instance.renderCount >= 60 && instance.config.onlyActiveWhenMouseOver && !proceed) {
                 const rect = instance.canvas.getBoundingClientRect();
                 const bounds = {
                     min: VEC2(rect.x, rect.y),
@@ -81,7 +85,7 @@ const createApp = (cfg) => {
                     continue;
                 }
             }
-            if (!instance.active)
+            if (!instance.active && !proceed && instance.renderCount >= 60)
                 continue;
             let resolution = instance.config.resolution;
             let size = instance.config.size;
@@ -145,7 +149,8 @@ const createApp = (cfg) => {
             //instance.ctx.shadowColor = `rgba(0, 0, 0, ${shadowAlpha})`
             //instance.ctx.shadowBlur = shadowBlur
             app.instances[i].fun(app.instances[i]);
-            app.instances[i].didRender = true;
+            app.instances[i].renderCount += 1;
+            app.actionQueue = app.actionQueue.filter(action => action.instanceUid !== instance.uid);
         }
         //app.chartFunction()
     };
@@ -193,6 +198,7 @@ const createApp = (cfg) => {
         loop(0, app);
     };
     const insert = (instance) => {
+        const initCfg = instance;
         const old = app.instances.find((inst) => inst.uid === instance.uid);
         if (old) {
             //return old;
@@ -208,6 +214,7 @@ const createApp = (cfg) => {
         const tooltip = Tooltip.call({ position: VEC2(app.mouse.x, app.mouse.y), opacity: 1.0, uid: instance.uid });
         const inst = xReactive({
             ...instance,
+            renderCount: 0,
             canvas: canvas,
             ctx,
             mouse: VEC2(0, 0),
@@ -235,15 +242,19 @@ const createApp = (cfg) => {
             },
             xel: (() => {
                 const xel = X('div', {
-                    onMount(self) {
+                    onMount(_self) {
                         const old = app.instances.find((inst) => inst.uid === instance.uid);
                         if (old) {
-                            return;
-                            // old.cancel();
+                            old.renderCount = 0;
                         }
-                        app.instances.push(inst);
+                        else {
+                            app.instances.push(inst);
+                        }
+                        if (initCfg.onMount) {
+                            initCfg.onMount(old || inst);
+                        }
                     },
-                    render(props, state) {
+                    render(_props, _state) {
                         return X('div', { children: [canvas, tooltip] });
                     }
                 });
@@ -262,7 +273,21 @@ const createApp = (cfg) => {
             return lineChart(app, data, options);
         },
     };
-    return { start, stop, insert, charts, visd: app };
+    const request = (action) => {
+        if (!action.instanceUid)
+            return;
+        if (!app.instances)
+            return;
+        const avail = app.instances.map(inst => inst.uid);
+        if (!avail.includes(action.instanceUid)) {
+            console.warn(`No such instance "${action.instanceUid}"`);
+            console.log('Available:');
+            console.log(avail);
+            return;
+        }
+        app.actionQueue.push(action);
+    };
+    return { start, stop, insert, charts, visd: app, request };
 };
 // @ts-ignore
 let vapp = undefined | window.vapp;

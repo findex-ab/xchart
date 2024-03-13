@@ -17,6 +17,7 @@ import {
 } from "../charts/types";
 import { Tooltip } from "../components/tooltip";
 import { VisdTooltipProps } from "../components/tooltip/types";
+import { EActionType, IAction } from "../types/action";
 import { AABB, aabbVSPoint2D } from "../utils/aabb";
 import { removeItemAtIndex, uniqueBy } from "../utils/array";
 import {  clamp, smoothstep } from "../utils/etc";
@@ -57,6 +58,7 @@ export type ChartInstanceInit = {
   fun: ChartFunction;
   config: VisdInstanceConfig;
   active?: boolean;
+  onMount?: (instance: ChartInstance) => void
 };
 
 
@@ -72,7 +74,7 @@ export type ChartInstance = {
   mouse: Vector;
   invMouseDistance: number;
   tooltip: XElement<VisdTooltipProps, VisdTooltipProps>;
-  didRender?: boolean;
+  renderCount: number;
   setTooltipBody: (body: XElement) => void;
   cancel: () => void;
   resume: () => void;
@@ -88,6 +90,7 @@ export interface Visd {
   loopId: number;
   instances: ChartInstance[];
   mouse: Vector;
+  actionQueue: IAction[];
 }
 
 export type VisdApplication = {
@@ -99,6 +102,7 @@ export type VisdApplication = {
     donut: ChartInitFunction;
     line: ChartInitFunction;
   };
+  request: (action: IAction) => void;
 };
 
 const createApp = (cfg: VisdConfig): VisdApplication => {
@@ -162,7 +166,8 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     running: false,
     loopId: -1,
     instances: [],
-    mouse: VEC2(0, 0)
+    mouse: VEC2(0, 0),
+    actionQueue: []
   };
 
   //mount(tooltip, { target: container }); 
@@ -178,8 +183,10 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
     }
     for (let i = 0; i < app.instances.length; i++) {
       const instance = app.instances[i];
+      const actions = app.actionQueue.filter(action => action.instanceUid === instance.uid);
+      const proceed = !!actions.find(action => action.type === EActionType.UPDATE);
 
-      if (instance.didRender && instance.config.onlyActiveWhenMouseOver) {
+      if (instance.renderCount >= 60 && instance.config.onlyActiveWhenMouseOver && !proceed) {
         const rect = instance.canvas.getBoundingClientRect();
         const bounds: AABB = {
           min: VEC2(rect.x, rect.y),
@@ -195,7 +202,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
         }
       }
 
-      if (!instance.active) continue;
+      if (!instance.active && !proceed && instance.renderCount >= 60) continue;
 
       let resolution = instance.config.resolution;
       let size = instance.config.size;
@@ -299,7 +306,9 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       //instance.ctx.shadowBlur = shadowBlur
       
       app.instances[i].fun(app.instances[i]);
-      app.instances[i].didRender = true;
+      app.instances[i].renderCount += 1;
+
+      app.actionQueue = app.actionQueue.filter(action => action.instanceUid !== instance.uid);
     }
     //app.chartFunction()
   };
@@ -352,6 +361,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
   };
 
   const insert = (instance: ChartInstanceInit): ChartInstance => {
+    const initCfg = instance;
     const old = app.instances.find((inst) => inst.uid === instance.uid);
     if (old) {
       //return old;
@@ -378,6 +388,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
     const inst: ChartInstance = xReactive({
       ...instance,
+      renderCount: 0,
       canvas: canvas,
       ctx,
       mouse: VEC2(0, 0),
@@ -405,17 +416,20 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       },
       xel: (() => {
         const xel: XElement = X<{ instance: ChartInstance }>('div', {
-          onMount(self) {
+          onMount(_self) {
             const old = app.instances.find((inst) => inst.uid === instance.uid);
 
             if (old) {
-              return;
-             // old.cancel();
+              old.renderCount = 0;
+            } else {
+              app.instances.push(inst);
             }
-            
-            app.instances.push(inst);
+
+            if (initCfg.onMount) {
+              initCfg.onMount(old || inst);
+            }
           },
-          render(props, state) {
+          render(_props, _state) {
             return X('div', { children: [ canvas, tooltip ] })
           }
         });
@@ -441,9 +455,22 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       
       return lineChart(app, data, options);
     },
-  }; 
+  };
 
-  return { start, stop, insert, charts, visd: app };
+  const request = (action: IAction) => {
+    if (!action.instanceUid) return;
+    if (!app.instances) return;
+    const avail = app.instances.map(inst => inst.uid);
+    if (!avail.includes(action.instanceUid)) {
+      console.warn(`No such instance "${action.instanceUid}"`);
+      console.log('Available:');
+      console.log(avail);
+      return;
+    }
+    app.actionQueue.push(action);
+  }
+
+  return { start, stop, insert, charts, visd: app, request };
 };
 
 // @ts-ignore
