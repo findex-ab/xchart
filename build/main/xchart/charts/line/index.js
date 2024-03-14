@@ -164,7 +164,7 @@ const measureText = (ctx, options) => {
 };
 const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
     return (instance) => {
-        var _a;
+        var _a, _b;
         const yValues = data.values.map((v) => v);
         const xValues = (options.xAxis ? (0, range_1.rangeToArray)(options.xAxis.range) : data.labels || []) ||
             data.labels ||
@@ -226,7 +226,8 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
                 value: yTickValues[i],
                 pos: (0, vector_1.VEC2)(padding.left, (vh - st) - padding.bottom),
                 font: (_a = options.yAxis) === null || _a === void 0 ? void 0 : _a.font,
-                color: (_b = options.yAxis) === null || _b === void 0 ? void 0 : _b.color
+                color: (_b = options.yAxis) === null || _b === void 0 ? void 0 : _b.color,
+                size: (0, vector_1.VEC2)(1, 1)
             };
         });
         const yTickMeasures = yTickObjects.map((obj) => measureText(ctx, obj));
@@ -239,14 +240,39 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
         });
         // ===================== X ticks
         const w = (0, etc_1.remap)(instance.resolution.x, 0, instance.resolution.x, padding.left, instance.resolution.x - padding.right); //instance.resolution.x - padding.left;
-        const xTickObjects = xValues.map((v, i) => {
+        const renderXValue = (x) => {
+            const normalize = (x) => {
+                if ((0, is_1.isNumber)(x)) {
+                    if ((0, date_1.isDate)(xValues[0]))
+                        return new Date(x);
+                    return x;
+                }
+                return x;
+            };
+            return formatX(normalize(x));
+        };
+        const xTickMeasures = xValues.map(x => { var _a, _b; return measureText(ctx, { text: renderXValue(x), font: (_a = options.xAxis) === null || _a === void 0 ? void 0 : _a.font, color: (_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.color, pos: (0, vector_1.VEC2)(0, 0) }); });
+        const xTickWidths = xTickMeasures.map(it => it.width);
+        const maxXTickWidth = Math.max(...xTickWidths);
+        const numXTicks = ((_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.ticks) || Math.max(6, Math.floor(w / (xValues.length * (maxXTickWidth))));
+        const xTickObjects = (0, etc_1.range)(numXTicks).map((i) => {
             var _a, _b;
+            const ni = i / numXTicks;
+            const xValStart = xValues[0];
+            const xValEnd = xValues[Math.max(0, xValues.length - 1)];
+            const start = (0, date_1.isDate)(xValStart) ? xValStart.getTime() : (0, is_1.isNumber)(xValStart) ? xValStart : 0;
+            const end = (0, date_1.isDate)(xValEnd) ? xValEnd.getTime() : (0, is_1.isNumber)(xValEnd) ? xValEnd : 0;
+            const vl = (0, etc_1.lerp)(start, end, ni);
+            const v = (0, date_1.isDate)(xValStart) ? new Date(vl) : vl;
+            const size = (0, vector_1.VEC2)(maxXTickWidth * 2, 1);
+            const x = ni * w;
             return {
                 text: formatX(v),
                 value: v,
-                pos: (0, vector_1.VEC2)(padding.left + (i * 100), vh + padding.bottom - textMarginBottom),
+                pos: (0, vector_1.VEC2)(padding.left + (x), vh + padding.bottom - textMarginBottom),
                 font: (_a = options.xAxis) === null || _a === void 0 ? void 0 : _a.font,
-                color: (_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.color
+                color: (_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.color,
+                size: size
             };
         });
         //const xTickMeasures = xTickObjects.map(obj => measureText(ctx, obj));

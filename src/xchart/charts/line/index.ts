@@ -22,7 +22,7 @@ import {
 } from '../types';
 import { LineChartState, defaultLineChartOptions } from './types';
 import { isDate } from '../../utils/date';
-import { isString } from '../../utils/is';
+import { isNumber, isString } from '../../utils/is';
 import { noise } from '../../utils/noise';
 import { hexToUint32, nthByte } from '../../utils/hash';
 
@@ -216,6 +216,7 @@ type TickObject = Omit<DrawTextOptions, 'text'> & {
   value: RangeScalar;
   text: RangeScalar;
   pos: Vector;
+  size: Vector;
 };
 
 export const lineChart: ChartSetupFunction = (
@@ -300,7 +301,8 @@ export const lineChart: ChartSetupFunction = (
         value: yTickValues[i],
         pos: VEC2(padding.left, (vh - st) - padding.bottom),
         font: options.yAxis?.font,
-        color: options.yAxis?.color
+        color: options.yAxis?.color,
+        size: VEC2(1, 1)
       };
     });
 
@@ -331,15 +333,46 @@ export const lineChart: ChartSetupFunction = (
     ); //instance.resolution.x - padding.left;
 
 
-    const xTickObjects: TickObject[] = xValues.map((v, i) => {
+    const renderXValue = (x: RangeScalar) => {
+      const normalize = (x: RangeScalar) => {
+        if (isNumber(x)) {
+          if (isDate(xValues[0])) return new Date(x);
+          return x;
+        }
+        return x;
+      }
+      return formatX(normalize(x));
+    }
 
-      
+    const xTickMeasures = xValues.map(x =>
+      measureText(ctx, { text: renderXValue(x), font: options.xAxis?.font, color: options.xAxis?.color, pos: VEC2(0, 0) }));
+
+    const xTickWidths = xTickMeasures.map(it => it.width);
+    const maxXTickWidth = Math.max(...xTickWidths);
+
+    const numXTicks =  options.xAxis?.ticks || Math.max(6, Math.floor(w / (xValues.length * (maxXTickWidth))));
+
+    const xTickObjects: TickObject[] = range(numXTicks).map((i) => {
+      const ni =  i / numXTicks;
+      const xValStart = xValues[0];
+      const xValEnd = xValues[Math.max(0, xValues.length-1)];
+
+      const start = isDate(xValStart) ? xValStart.getTime() : isNumber(xValStart) ? xValStart : 0;
+      const end = isDate(xValEnd) ? xValEnd.getTime() : isNumber(xValEnd) ? xValEnd : 0;
+
+      const vl = lerp(start, end, ni);
+      const v = isDate(xValStart) ? new Date(vl) : vl;
+
+      const size = VEC2(maxXTickWidth*2, 1);
+
+      const x = ni * w;
       return {
         text: formatX(v),
         value:v,
-        pos: VEC2(padding.left + (i*100), vh + padding.bottom - textMarginBottom),
+        pos: VEC2(padding.left + (x), vh + padding.bottom - textMarginBottom),
         font: options.xAxis?.font,
-        color: options.xAxis?.color
+        color: options.xAxis?.color,
+        size: size 
       };
     });
 

@@ -1,10 +1,10 @@
 import { rangeToArray } from '../../types/range';
-import { clamp, lerp, remap, stepRange, } from '../../utils/etc';
+import { clamp, lerp, range, remap, stepRange, } from '../../utils/etc';
 import { VEC2, VEC3 } from '../../utils/vector';
 import * as fns from 'date-fns';
 import { defaultLineChartOptions } from './types';
 import { isDate } from '../../utils/date';
-import { isString } from '../../utils/is';
+import { isNumber, isString } from '../../utils/is';
 import { hexToUint32, nthByte } from '../../utils/hash';
 // draw line from A to B
 const drawLine = (ctx, a, b, color = 'black', thick = 1) => {
@@ -196,7 +196,8 @@ export const lineChart = (app, data, options = defaultLineChartOptions) => {
                 value: yTickValues[i],
                 pos: VEC2(padding.left, (vh - st) - padding.bottom),
                 font: options.yAxis?.font,
-                color: options.yAxis?.color
+                color: options.yAxis?.color,
+                size: VEC2(1, 1)
             };
         });
         const yTickMeasures = yTickObjects.map((obj) => measureText(ctx, obj));
@@ -209,13 +210,38 @@ export const lineChart = (app, data, options = defaultLineChartOptions) => {
         });
         // ===================== X ticks
         const w = remap(instance.resolution.x, 0, instance.resolution.x, padding.left, instance.resolution.x - padding.right); //instance.resolution.x - padding.left;
-        const xTickObjects = xValues.map((v, i) => {
+        const renderXValue = (x) => {
+            const normalize = (x) => {
+                if (isNumber(x)) {
+                    if (isDate(xValues[0]))
+                        return new Date(x);
+                    return x;
+                }
+                return x;
+            };
+            return formatX(normalize(x));
+        };
+        const xTickMeasures = xValues.map(x => measureText(ctx, { text: renderXValue(x), font: options.xAxis?.font, color: options.xAxis?.color, pos: VEC2(0, 0) }));
+        const xTickWidths = xTickMeasures.map(it => it.width);
+        const maxXTickWidth = Math.max(...xTickWidths);
+        const numXTicks = options.xAxis?.ticks || Math.max(6, Math.floor(w / (xValues.length * (maxXTickWidth))));
+        const xTickObjects = range(numXTicks).map((i) => {
+            const ni = i / numXTicks;
+            const xValStart = xValues[0];
+            const xValEnd = xValues[Math.max(0, xValues.length - 1)];
+            const start = isDate(xValStart) ? xValStart.getTime() : isNumber(xValStart) ? xValStart : 0;
+            const end = isDate(xValEnd) ? xValEnd.getTime() : isNumber(xValEnd) ? xValEnd : 0;
+            const vl = lerp(start, end, ni);
+            const v = isDate(xValStart) ? new Date(vl) : vl;
+            const size = VEC2(maxXTickWidth * 2, 1);
+            const x = ni * w;
             return {
                 text: formatX(v),
                 value: v,
-                pos: VEC2(padding.left + (i * 100), vh + padding.bottom - textMarginBottom),
+                pos: VEC2(padding.left + (x), vh + padding.bottom - textMarginBottom),
                 font: options.xAxis?.font,
-                color: options.xAxis?.color
+                color: options.xAxis?.color,
+                size: size
             };
         });
         //const xTickMeasures = xTickObjects.map(obj => measureText(ctx, obj));
