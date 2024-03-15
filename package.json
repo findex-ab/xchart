@@ -1,6 +1,6 @@
 {
   "name": "xchart",
-  "version": "2.4.9",
+  "version": "2.5.9",
   "description": "chart library",
   "bin": {
     "xchart": "./bin/xchart"

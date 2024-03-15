@@ -379,7 +379,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
     const container = instance.config.container || cfg.container;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) throw new Error("unable to get context");
 
     

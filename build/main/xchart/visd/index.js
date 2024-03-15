@@ -211,7 +211,7 @@ const createApp = (cfg) => {
         const sizes = computeSizes(instance.config.resolution, instance.config.size, instance.config);
         const canvas = createCanvas(sizes.resolution, sizes.size);
         const container = instance.config.container || cfg.container;
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
         if (!ctx)
             throw new Error("unable to get context");
         const tooltip = tooltip_1.Tooltip.call({ position: (0, vector_1.VEC2)(app.mouse.x, app.mouse.y), opacity: 1.0, uid: instance.uid });
