@@ -20,7 +20,7 @@ import { computeXAxis, computeYAxis } from './utils';
 
 
 
-export const lineChart: ChartSetupFunction = (
+export const lineChart1: ChartSetupFunction = (
   app: Visd,
   data: ChartData,
   options: ChartOptions = defaultLineChartOptions,

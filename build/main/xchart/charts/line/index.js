@@ -32,6 +32,8 @@ const types_1 = require("./types");
 const date_1 = require("../../utils/date");
 const is_1 = require("../../utils/is");
 const hash_1 = require("../../utils/hash");
+const array_1 = require("../../utils/array");
+const draw_1 = require("../../utils/draw");
 // draw line from A to B
 const drawLine = (ctx, a, b, color = 'black', thick = 1) => {
     ctx.save();
@@ -163,8 +165,10 @@ const measureText = (ctx, options) => {
     return m;
 };
 const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
+    //  return lineChart3(app, data, options);
     let tooltipPos = app.mouse.clone();
     let tooltipPosPrev = tooltipPos.clone();
+    let prevPointPos = tooltipPos.clone();
     return (instance) => {
         var _a;
         const yValues = data.values.map((v) => v);
@@ -355,6 +359,9 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
                 a.color = 'rgba(0, 0, 0, 0.15)';
             }
         }
+        if ((0, array_1.isAllSame)(xTickObjects.map(it => it.text))) {
+            xTickObjects = (0, array_1.uniqueBy)(xTickObjects, (it) => it.text);
+        }
         //let sameCount = 0;
         //for (let i = xTickObjects.length-1; i >= 0; i--) {
         //  const cur = xTickObjects[i];
@@ -476,7 +483,24 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             const key = key1;
             const idx = getMousePointIndex();
             const point = points[idx] || (0, vector_1.VEC2)(0, 0); //(curvePoints[idx][1] || curvePoints[idx][0]).clone();
-            drawPoint(ctx, (0, vector_1.VEC2)(Math.floor((0, etc_1.lerp)(point.x, instance.mouse.x, 0.9)), point.y), options.pointColor || 'red', 8);
+            const getBestPos = (p, fallback = p) => {
+                let prev = (0, draw_1.getPixel)(ctx, p);
+                let y = vh - (padding.bottom + padding.top) * 2;
+                let x = p.x;
+                for (; y >= 0; y -= 1) {
+                    const pixel = (0, draw_1.getPixel)(ctx, (0, vector_1.VEC2)(x, y)).scale(1.0 / 255.0);
+                    if (pixel.mag() <= 0.003 && prev.mag() > 0.003) {
+                        return (0, vector_1.VEC2)(x, y);
+                    }
+                    prev = pixel;
+                }
+                return fallback;
+            };
+            const ppx = getBestPos(instance.mouse.run(Math.round), point).lerp(point, 0.1);
+            const nextPointPos = (0, vector_1.VEC2)(Math.floor((0, etc_1.lerp)(ppx.x, instance.mouse.x, 0.9)), (0, etc_1.clamp)(ppx.y, 8, vh - 8));
+            const pointPos = prevPointPos.lerp(nextPointPos, (0, etc_1.clamp)(app.deltaTime * 8.0, 0, 1));
+            prevPointPos = pointPos;
+            drawPoint(ctx, pointPos, options.pointColor || 'red', 8);
             const updateTooltip = () => {
                 const tooltipRect = instance.tooltip.el
                     ? instance.tooltip.el.getBoundingClientRect()

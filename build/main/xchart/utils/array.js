@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeItemAtIndex = exports.unique = exports.uniqueBy = exports.stepForEach = exports.chunkify = void 0;
+exports.isAllSame = exports.removeItemAtIndex = exports.unique = exports.uniqueBy = exports.stepForEach = exports.chunkify = void 0;
 const chunkify = (arr, sliceSize = 2) => {
     const result = [[]];
     for (let i = 0; i < arr.length; i += sliceSize) {
@@ -47,3 +47,9 @@ const removeItemAtIndex = (array, index) => {
     return array;
 };
 exports.removeItemAtIndex = removeItemAtIndex;
+const isAllSame = (arr) => {
+    if (arr.length <= 0)
+        return false;
+    return arr.filter(it => it === arr[0]).length >= arr.length;
+};
+exports.isAllSame = isAllSame;

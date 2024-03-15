@@ -16,3 +16,4 @@ export declare const drawPoint: (ctx: CanvasRenderingContext2D, args: DrawOption
 export declare const drawLine: (ctx: CanvasRenderingContext2D, args: DrawOptions) => void;
 export declare const drawRect: (ctx: CanvasRenderingContext2D, args: DrawOptions) => void;
 export declare const drawText: (ctx: CanvasRenderingContext2D, args: DrawOptions) => void;
+export declare const getPixel: (ctx: CanvasRenderingContext2D, pos: Vector) => Vector;

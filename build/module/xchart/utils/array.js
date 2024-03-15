@@ -39,3 +39,8 @@ export const removeItemAtIndex = (array, index) => {
     }
     return array;
 };
+export const isAllSame = (arr) => {
+    if (arr.length <= 0)
+        return false;
+    return arr.filter(it => it === arr[0]).length >= arr.length;
+};

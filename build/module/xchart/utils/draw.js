@@ -1,5 +1,6 @@
+import { clamp } from "../utils/etc";
 import { isString, isUndefined } from "./is";
-import { VEC2 } from "./vector";
+import { VEC2, VEC3 } from "./vector";
 const toColor = (v) => {
     if (isUndefined(v))
         return 'black';
@@ -78,4 +79,10 @@ export const drawText = (ctx, args) => {
         fun(`${args.text ?? ''}`, pos.x, pos.y);
         ctx.closePath();
     });
+};
+export const getPixel = (ctx, pos) => {
+    const x = clamp(pos.x, 0, ctx.canvas.width);
+    const y = clamp(pos.y, 0, ctx.canvas.height);
+    const data = ctx.getImageData(x, y, 1, 1).data;
+    return VEC3(data[0], data[1], data[2]);
 };

@@ -1,5 +1,6 @@
+import { clamp } from "../utils/etc";
 import { isString, isUndefined } from "./is";
-import { VEC2, Vector } from "./vector";
+import { VEC2, VEC3, Vector } from "./vector";
 
 export type DrawOptions = {
   fill?: string | Vector;
@@ -93,4 +94,11 @@ export const drawText = (ctx: CanvasRenderingContext2D, args: DrawOptions) => {
     fun(`${args.text ?? ''}`, pos.x, pos.y);
     ctx.closePath();
   })
+}
+
+export const getPixel = (ctx: CanvasRenderingContext2D, pos: Vector) => {
+  const x = clamp(pos.x, 0, ctx.canvas.width);
+  const y = clamp(pos.y, 0, ctx.canvas.height);
+  const data = ctx.getImageData(x, y, 1, 1).data;
+  return VEC3(data[0], data[1], data[2]);
 }

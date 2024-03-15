@@ -218,7 +218,7 @@ type TickObject = Omit<DrawTextOptions, 'text'> & {
   pos: Vector;
 };
 
-export const lineChart: ChartSetupFunction = (
+export const lineChart2: ChartSetupFunction = (
   app: Visd,
   data: ChartData,
   options: ChartOptions = defaultLineChartOptions,

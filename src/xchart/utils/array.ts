@@ -46,3 +46,8 @@ export const removeItemAtIndex = <T = any>(array: T[], index: number): T[] => {
   }
   return array;
 }
+
+export const isAllSame = <T = any>(arr: T[]): boolean => {
+  if (arr.length <= 0) return false;
+  return arr.filter(it => it === arr[0]).length >= arr.length;
+}

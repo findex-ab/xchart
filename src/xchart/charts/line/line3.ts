@@ -93,7 +93,7 @@ const drawCurve2 = (
   ctx.restore();
 };
 
-export const lineChart: ChartSetupFunction = (
+export const lineChart3: ChartSetupFunction = (
   app: Visd,
   data: ChartData,
   options: ChartOptions = defaultLineChartOptions,

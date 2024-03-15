@@ -25,7 +25,9 @@ import { isDate } from '../../utils/date';
 import { isNumber, isString } from '../../utils/is';
 import { noise } from '../../utils/noise';
 import { hexToUint32, nthByte } from '../../utils/hash';
-import { uniqueBy } from '../../utils/array';
+import { isAllSame, uniqueBy } from '../../utils/array';
+import { lineChart3 } from './line3';
+import { getPixel } from '../../utils/draw';
 
 type DrawTextOptions = {
   text: RangeScalar;
@@ -225,8 +227,12 @@ export const lineChart: ChartSetupFunction = (
   data: ChartData,
   options: ChartOptions = defaultLineChartOptions,
 ): ChartUpdateFunction => {
+
+//  return lineChart3(app, data, options);
+  
   let tooltipPos = app.mouse.clone();
   let tooltipPosPrev = tooltipPos.clone();
+  let prevPointPos = tooltipPos.clone();
   return (instance) => {
 
       const yValues = data.values.map((v) => v);
@@ -489,6 +495,10 @@ export const lineChart: ChartSetupFunction = (
       }
     }
 
+    if (isAllSame(xTickObjects.map(it => it.text))) {
+      xTickObjects = uniqueBy(xTickObjects, (it) => it.text);
+    }
+
 
     //let sameCount = 0;
 
@@ -660,7 +670,26 @@ export const lineChart: ChartSetupFunction = (
       const idx = getMousePointIndex();
       const point = points[idx] || VEC2(0, 0);//(curvePoints[idx][1] || curvePoints[idx][0]).clone();
 
-      drawPoint(ctx, VEC2(Math.floor(lerp(point.x, instance.mouse.x, 0.9)), point.y), options.pointColor || 'red', 8);
+      const getBestPos = (p: Vector, fallback: Vector = p) => {
+        let prev = getPixel(ctx, p);
+        let y = vh-(padding.bottom + padding.top)*2;
+        let x = p.x;
+        for (; y >= 0; y -= 1) {
+          const pixel = getPixel(ctx, VEC2(x, y)).scale(1.0 / 255.0);
+          if (pixel.mag() <= 0.003 && prev.mag() > 0.003) {
+            return VEC2(x, y);
+          }
+          prev = pixel;
+        }
+        return fallback;
+      }
+
+
+      const ppx = getBestPos(instance.mouse.run(Math.round), point).lerp(point, 0.1);
+      const nextPointPos = VEC2(Math.floor(lerp(ppx.x, instance.mouse.x, 0.9)), clamp(ppx.y, 8, vh-8));
+      const pointPos = prevPointPos.lerp(nextPointPos, clamp(app.deltaTime*8.0, 0, 1));
+      prevPointPos = pointPos;
+      drawPoint(ctx, pointPos, options.pointColor || 'red', 8);
 
       const updateTooltip = () => {
         

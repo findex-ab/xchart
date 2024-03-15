@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.drawText = exports.drawRect = exports.drawLine = exports.drawPoint = void 0;
+exports.getPixel = exports.drawText = exports.drawRect = exports.drawLine = exports.drawPoint = void 0;
+const etc_1 = require("../utils/etc");
 const is_1 = require("./is");
 const vector_1 = require("./vector");
 const toColor = (v) => {
@@ -87,3 +88,10 @@ const drawText = (ctx, args) => {
     });
 };
 exports.drawText = drawText;
+const getPixel = (ctx, pos) => {
+    const x = (0, etc_1.clamp)(pos.x, 0, ctx.canvas.width);
+    const y = (0, etc_1.clamp)(pos.y, 0, ctx.canvas.height);
+    const data = ctx.getImageData(x, y, 1, 1).data;
+    return (0, vector_1.VEC3)(data[0], data[1], data[2]);
+};
+exports.getPixel = getPixel;
