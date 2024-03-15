@@ -495,7 +495,7 @@ export const lineChart: ChartSetupFunction = (
       }
     }
 
-    if (isAllSame(xTickObjects.map(it => it.text))) {
+    if (isAllSame(xTickObjects.map(it => it.text).filter(it => it.toString().includes('0')))) {
       xTickObjects = uniqueBy(xTickObjects, (it) => it.text);
     }
 

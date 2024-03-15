@@ -359,7 +359,7 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
                 a.color = 'rgba(0, 0, 0, 0.15)';
             }
         }
-        if ((0, array_1.isAllSame)(xTickObjects.map(it => it.text))) {
+        if ((0, array_1.isAllSame)(xTickObjects.map(it => it.text).filter(it => it.toString().includes('0')))) {
             xTickObjects = (0, array_1.uniqueBy)(xTickObjects, (it) => it.text);
         }
         //let sameCount = 0;
