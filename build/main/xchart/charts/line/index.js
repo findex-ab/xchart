@@ -137,6 +137,7 @@ const drawCurve2 = (ctx, points, w, h, padding, colors = ['#FF0000', '#00FF00'])
         //const yc = (a.p.y + b.p.y) * 0.5;
     }
     let i = points.length - 2;
+    points[i + 1].x = w;
     ctx.quadraticCurveTo(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
     const padY = padding.bottom + padding.top;
     ctx.quadraticCurveTo(points[i + 1].x, points[i + 1].y, w, h - padY);
@@ -145,6 +146,11 @@ const drawCurve2 = (ctx, points, w, h, padding, colors = ['#FF0000', '#00FF00'])
     ctx.closePath();
     ctx.fill();
     ctx.restore();
+    //for (const point of points) {
+    //  ctx.save()
+    //  drawPoint(ctx, point, 'red', 10);
+    //  ctx.restore();
+    //}
 };
 const drawPoint = (ctx, point, color = 'red', radius = 10) => {
     ctx.save();
@@ -222,7 +228,7 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             (0, etc_1.clamp)(Math.log10(peakY), Math.max(1, 4 * (size.x / vh)), 100));
         const yStep = Math.max(1, Math.ceil(vh / numYTicks));
         const yTicks = (0, etc_1.stepRange)(vh, yStep);
-        const yTickValues = yTicks.map((st) => (0, etc_1.lerp)(minY, peakY, st / ((yTicks.length - 1) * yStep)));
+        const yTickValues = yTicks.map((st) => (0, etc_1.lerp)(0, peakY, st / ((yTicks.length - 1) * yStep)));
         const yTickObjects = yTicks.map((st, i) => {
             var _a, _b;
             return {
@@ -334,33 +340,36 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             args.pos.x -= maxXTickWidth;
             return Object.assign({ text: text }, args);
         });
-        for (let i = 0; i < xTickObjects.length; i += 2) {
-            const a = xTickObjects[i];
-            const b = xTickObjects[Math.min(i + 1, xTickObjects.length - 1)];
-            const ma = measureText(ctx, a);
-            const mb = measureText(ctx, b);
-            if (a.pos.x + ma.width >= (b.pos.x)) {
-                xTickObjects[i].text = '...';
-                xTickObjects[i].color = 'rgba(0, 0, 0, 0.15)';
+        const ALLOW_DUPLICATES = false;
+        if (!ALLOW_DUPLICATES) {
+            //for (let i = 0; i < xTickObjects.length; i+=2) {
+            //  const a = xTickObjects[i];
+            //  const b = xTickObjects[Math.min(i+1, xTickObjects.length-1)];
+            //  
+            //  const ma = measureText(ctx, a);
+            //  const mb = measureText(ctx, b);
+            //  if (a.pos.x + ma.width >= (b.pos.x)) {
+            //    xTickObjects[i].text = '...';
+            //    xTickObjects[i].color = 'rgba(0, 0, 0, 0.15)';
+            //  }
+            //  if (b.pos.x + mb.width >= w) {
+            //    b.text = '';
+            //  }
+            //}
+            //let fixed: any[] = [];
+            //for (let i = 0; i < xTickObjects.length; i++) {
+            //  const a = xTickObjects[(xTickObjects.length-1)-i];
+            //  if (fixed.includes(a.text)) continue;
+            //  fixed.push(a.text);
+            //  const dups = xTickObjects.filter(it => it.text === a.text);
+            //  if (dups.length > 1) {
+            //    a.text = '...';
+            //    a.color = 'rgba(0, 0, 0, 0.15)';
+            //  }
+            //}
+            if ((0, array_1.isAllSame)(xTickObjects.map(it => it.text).filter(it => it.toString().includes('0')))) {
+                xTickObjects = (0, array_1.uniqueBy)(xTickObjects.reverse(), (it) => it.text).reverse();
             }
-            if (b.pos.x + mb.width >= w) {
-                b.text = '';
-            }
-        }
-        let fixed = [];
-        for (let i = 0; i < xTickObjects.length; i++) {
-            const a = xTickObjects[i];
-            if (fixed.includes(a.text))
-                continue;
-            fixed.push(a.text);
-            const dups = xTickObjects.filter(it => it.text === a.text);
-            if (dups.length > 1) {
-                a.text = '...';
-                a.color = 'rgba(0, 0, 0, 0.15)';
-            }
-        }
-        if ((0, array_1.isAllSame)(xTickObjects.map(it => it.text).filter(it => it.toString().includes('0')))) {
-            xTickObjects = (0, array_1.uniqueBy)(xTickObjects, (it) => it.text);
         }
         //let sameCount = 0;
         //for (let i = xTickObjects.length-1; i >= 0; i--) {

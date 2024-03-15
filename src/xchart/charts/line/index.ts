@@ -135,13 +135,14 @@ const drawCurve2 = (
   ctx.strokeStyle = 'black';
   ctx.beginPath();
   ctx.moveTo(...points[0].xy);
+
+  
   for (let i = 0; i < points.length - 2; i += 1) {
     const a = points[i];
     const b = points[clamp(i + 1, 0, points.length - 1)];
 
+    
     const c = a.lerp(b, 0.5);
-
-
 
     const first = points[0];
       const last = points[points.length - 1];
@@ -174,7 +175,9 @@ const drawCurve2 = (
     //const yc = (a.p.y + b.p.y) * 0.5;
   }
 
+
   let i = points.length - 2;
+  points[i+1].x = w;
   ctx.quadraticCurveTo(
     points[i].x,
     points[i].y,
@@ -189,6 +192,12 @@ const drawCurve2 = (
   ctx.closePath();
   ctx.fill();
   ctx.restore();
+
+  //for (const point of points) {
+  //  ctx.save()
+  //  drawPoint(ctx, point, 'red', 10);
+  //  ctx.restore();
+  //}
 };
 
 const drawPoint = (ctx: CanvasRenderingContext2D, point: Vector, color: string = 'red', radius: number = 10) => {
@@ -300,7 +309,7 @@ export const lineChart: ChartSetupFunction = (
 
     const yTicks = stepRange(vh, yStep);
     const yTickValues = yTicks.map((st) =>
-      lerp(minY, peakY, st / ((yTicks.length - 1) * yStep)),
+      lerp(0, peakY, st / ((yTicks.length - 1) * yStep)),
     );
 
     const yTickObjects: TickObject[] = yTicks.map((st, i) => {
@@ -465,38 +474,41 @@ export const lineChart: ChartSetupFunction = (
       };
     });
 
-    for (let i = 0; i < xTickObjects.length; i+=2) {
-      const a = xTickObjects[i];
-      const b = xTickObjects[Math.min(i+1, xTickObjects.length-1)];
-      
-      const ma = measureText(ctx, a);
-      const mb = measureText(ctx, b);
+    const ALLOW_DUPLICATES = false;
+    if (!ALLOW_DUPLICATES) {
+    //for (let i = 0; i < xTickObjects.length; i+=2) {
+    //  const a = xTickObjects[i];
+    //  const b = xTickObjects[Math.min(i+1, xTickObjects.length-1)];
+    //  
+    //  const ma = measureText(ctx, a);
+    //  const mb = measureText(ctx, b);
 
-      if (a.pos.x + ma.width >= (b.pos.x)) {
-        xTickObjects[i].text = '...';
-        xTickObjects[i].color = 'rgba(0, 0, 0, 0.15)';
-      }
+    //  if (a.pos.x + ma.width >= (b.pos.x)) {
+    //    xTickObjects[i].text = '...';
+    //    xTickObjects[i].color = 'rgba(0, 0, 0, 0.15)';
+    //  }
 
-      if (b.pos.x + mb.width >= w) {
-        b.text = '';
-      }
-    }
+    //  if (b.pos.x + mb.width >= w) {
+    //    b.text = '';
+    //  }
+    //}
 
-    let fixed: any[] = [];
-    for (let i = 0; i < xTickObjects.length; i++) {
-      const a = xTickObjects[i];
-      if (fixed.includes(a.text)) continue;
-      fixed.push(a.text);
-      const dups = xTickObjects.filter(it => it.text === a.text);
+    //let fixed: any[] = [];
+    //for (let i = 0; i < xTickObjects.length; i++) {
+    //  const a = xTickObjects[(xTickObjects.length-1)-i];
+    //  if (fixed.includes(a.text)) continue;
+    //  fixed.push(a.text);
+    //  const dups = xTickObjects.filter(it => it.text === a.text);
 
-      if (dups.length > 1) {
-        a.text = '...';
-        a.color = 'rgba(0, 0, 0, 0.15)';
-      }
-    }
+    //  if (dups.length > 1) {
+    //    a.text = '...';
+    //    a.color = 'rgba(0, 0, 0, 0.15)';
+    //  }
+    //}
 
     if (isAllSame(xTickObjects.map(it => it.text).filter(it => it.toString().includes('0')))) {
-      xTickObjects = uniqueBy(xTickObjects, (it) => it.text);
+      xTickObjects = uniqueBy(xTickObjects.reverse(), (it) => it.text).reverse();
+    }
     }
 
 
