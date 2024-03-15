@@ -163,8 +163,10 @@ const measureText = (ctx, options) => {
     return m;
 };
 const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
+    let tooltipPos = app.mouse.clone();
+    let tooltipPosPrev = tooltipPos.clone();
     return (instance) => {
-        var _a, _b;
+        var _a;
         const yValues = data.values.map((v) => v);
         const xValues = (options.xAxis ? (0, range_1.rangeToArray)(options.xAxis.range) : data.labels || []) ||
             data.labels ||
@@ -194,8 +196,6 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             return (0, is_1.isString)(y) ? y : (0, date_1.isDate)(y) ? fns.format(y, 'y-m-d') : y.toFixed(2);
         };
         const GRID_COLOR = 'rgba(0, 0, 0, 0.1)';
-        let tooltipPos = app.mouse.clone();
-        let tooltipPosPrev = tooltipPos.clone();
         const colors = options.colors || types_1.defaultLineChartOptions.colors;
         const rect = instance.canvas.getBoundingClientRect();
         const rx = instance.canvas.width / rect.width;
@@ -240,45 +240,6 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
         });
         // ===================== X ticks
         const w = (0, etc_1.remap)(instance.resolution.x, 0, instance.resolution.x, padding.left, instance.resolution.x - padding.right); //instance.resolution.x - padding.left;
-        const renderXValue = (x) => {
-            const normalize = (x) => {
-                if ((0, is_1.isNumber)(x)) {
-                    if ((0, date_1.isDate)(xValues[0]))
-                        return new Date(x);
-                    return x;
-                }
-                return x;
-            };
-            return formatX(normalize(x));
-        };
-        const xTickMeasures = xValues.map(x => { var _a, _b; return measureText(ctx, { text: renderXValue(x), font: (_a = options.xAxis) === null || _a === void 0 ? void 0 : _a.font, color: (_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.color, pos: (0, vector_1.VEC2)(0, 0) }); });
-        const xTickWidths = xTickMeasures.map(it => it.width);
-        const maxXTickWidth = Math.max(...xTickWidths);
-        const numXTicks = ((_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.ticks) || Math.max(6, Math.floor(w / (xValues.length * (maxXTickWidth))));
-        const xTickObjects = (0, etc_1.range)(numXTicks).map((i) => {
-            var _a, _b;
-            const ni = i / numXTicks;
-            const xValStart = xValues[0];
-            const xValEnd = xValues[Math.max(0, xValues.length - 1)];
-            const start = (0, date_1.isDate)(xValStart) ? xValStart.getTime() : (0, is_1.isNumber)(xValStart) ? xValStart : 0;
-            const end = (0, date_1.isDate)(xValEnd) ? xValEnd.getTime() : (0, is_1.isNumber)(xValEnd) ? xValEnd : 0;
-            const vl = (0, etc_1.lerp)(start, end, ni);
-            const v = (0, date_1.isDate)(xValStart) ? new Date(vl) : vl;
-            const size = (0, vector_1.VEC2)(maxXTickWidth * 2, 1);
-            const x = ni * w;
-            return {
-                text: formatX(v),
-                value: v,
-                pos: (0, vector_1.VEC2)(padding.left + (x), vh + padding.bottom - textMarginBottom),
-                font: (_a = options.xAxis) === null || _a === void 0 ? void 0 : _a.font,
-                color: (_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.color,
-                size: size
-            };
-        });
-        //const xTickMeasures = xTickObjects.map(obj => measureText(ctx, obj));
-        xTickObjects.forEach((obj) => {
-            drawText(ctx, obj);
-        });
         // =================== points
         let points = [];
         //for (let i = 0; i < xTickObjects.length; i++) {
@@ -326,6 +287,94 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             //const y = remap(value, minY, peakY, Math.min(...yTickObjects.map(it => it.pos.y)), Math.max(...yTickObjects.map(it => it.pos.y)));
             points.push(pos);
         }
+        const renderXValue = (x) => {
+            const normalize = (x) => {
+                if ((0, is_1.isNumber)(x)) {
+                    if ((0, date_1.isDate)(xValues[0]))
+                        return new Date(x);
+                    return x;
+                }
+                return x;
+            };
+            return formatX(normalize(x));
+        };
+        const getXAt = (ni) => {
+            const xValStart = xValues[0];
+            const xValEnd = xValues[Math.max(0, xValues.length - 1)];
+            const start = (0, date_1.isDate)(xValStart) ? xValStart.getTime() : (0, is_1.isNumber)(xValStart) ? xValStart : 0;
+            const end = (0, date_1.isDate)(xValEnd) ? xValEnd.getTime() : (0, is_1.isNumber)(xValEnd) ? xValEnd : 0;
+            const vl = (0, etc_1.lerp)(start, end, ni);
+            const v = (0, date_1.isDate)(xValStart) ? new Date(Math.ceil(vl)) : vl;
+            return v;
+        };
+        const xTickMeasures = xValues.map(x => { var _a, _b; return measureText(ctx, { text: renderXValue(x), font: (_a = options.xAxis) === null || _a === void 0 ? void 0 : _a.font, color: (_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.color, pos: (0, vector_1.VEC2)(0, 0) }); });
+        const xTickWidths = xTickMeasures.map(it => it.width);
+        const maxXTickWidth = Math.max(...xTickWidths);
+        //const numXTicks =  options.xAxis?.ticks || Math.min(Math.max(6, Math.floor(w / (xValues.length * (maxXTickWidth)))), xValues.length);
+        let xTickObjects = points.map((p, i) => {
+            var _a, _b;
+            const ni = i / points.length;
+            const pos = (0, vector_1.VEC2)(padding.left + p.x, vh + padding.bottom - textMarginBottom);
+            const v = getXAt(pos.x / w);
+            const size = (0, vector_1.VEC2)(maxXTickWidth * 2, 1);
+            let text = formatX(v);
+            let args = {
+                text,
+                value: v,
+                pos: pos,
+                font: (_a = options.xAxis) === null || _a === void 0 ? void 0 : _a.font,
+                color: (_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.color,
+                size: size
+            };
+            const m = measureText(ctx, args);
+            args.pos.x -= maxXTickWidth;
+            return Object.assign({ text: text }, args);
+        });
+        for (let i = 0; i < xTickObjects.length; i += 2) {
+            const a = xTickObjects[i];
+            const b = xTickObjects[Math.min(i + 1, xTickObjects.length - 1)];
+            const ma = measureText(ctx, a);
+            const mb = measureText(ctx, b);
+            if (a.pos.x + ma.width >= (b.pos.x)) {
+                xTickObjects[i].text = '...';
+                xTickObjects[i].color = 'rgba(0, 0, 0, 0.15)';
+            }
+            if (b.pos.x + mb.width >= w) {
+                b.text = '';
+            }
+        }
+        let fixed = [];
+        for (let i = 0; i < xTickObjects.length; i++) {
+            const a = xTickObjects[i];
+            if (fixed.includes(a.text))
+                continue;
+            fixed.push(a.text);
+            const dups = xTickObjects.filter(it => it.text === a.text);
+            if (dups.length > 1) {
+                a.text = '...';
+                a.color = 'rgba(0, 0, 0, 0.15)';
+            }
+        }
+        //let sameCount = 0;
+        //for (let i = xTickObjects.length-1; i >= 0; i--) {
+        //  const cur = xTickObjects[i];
+        //  const prev = xTickObjects[Math.max(0, i-1)];
+        //  if (cur.text === prev.text) sameCount += 1;
+        //}
+        //if (sameCount > 1) {
+        //  const mid = xTickObjects.length/2;
+        //  for (let i = 0; i < xTickObjects.length; i++) {
+        //    if ((i < (mid) || i > (mid))) {
+        //      xTickObjects[i].text = '.';
+        //      xTickObjects[i].color = 'rgba(0, 0, 0, 0.15)';
+        //    }
+        //  }
+        //}
+        // xTickObjects = uniqueBy(xTickObjects, (it) => it.text);
+        //const xTickMeasures = xTickObjects.map(obj => measureText(ctx, obj));
+        xTickObjects.forEach((obj) => {
+            drawText(ctx, obj);
+        });
         // const curvePoints = createCurvePoints(points);
         drawCurve2(ctx, points, w, h - padding.bottom, padding, colors || []);
         const left = padding.left;
@@ -421,13 +470,13 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             //  1,
             //);
             const valueIndex = Math.round((0, etc_1.clamp)(nx * (yValues.length - 1), 0, yValues.length - 1));
-            const xValueIndex = ((0, etc_1.clamp)(Math.floor(nx * (xValues.length)), 0, xValues.length - 1));
+            const xValueIndex = ((0, etc_1.clamp)(Math.floor(nx * (xValues.length - 1)), 0, xValues.length - 1));
             const value = yValues[valueIndex];
             const key1 = xValues[xValueIndex];
             const key = key1;
             const idx = getMousePointIndex();
             const point = points[idx] || (0, vector_1.VEC2)(0, 0); //(curvePoints[idx][1] || curvePoints[idx][0]).clone();
-            drawPoint(ctx, (0, vector_1.VEC2)((0, etc_1.lerp)(point.x, instance.mouse.x, 0.5), point.y), options.pointColor || 'red', 8);
+            drawPoint(ctx, (0, vector_1.VEC2)(Math.floor((0, etc_1.lerp)(point.x, instance.mouse.x, 0.9)), point.y), options.pointColor || 'red', 8);
             const updateTooltip = () => {
                 const tooltipRect = instance.tooltip.el
                     ? instance.tooltip.el.getBoundingClientRect()
@@ -443,7 +492,7 @@ const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
             //   drawLine(ctx, VEC2(left, vh/2), VEC2(right, vh/2));
             updateTooltip();
             if (options.callback) {
-                options.callback(instance, key, value, valueIndex);
+                options.callback(instance, formatX(getXAt(instance.mouse.x / w)), value, valueIndex);
             }
         };
         mouseInteraction();
