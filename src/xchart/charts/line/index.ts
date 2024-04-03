@@ -28,6 +28,7 @@ import { hexToUint32, nthByte } from '../../utils/hash';
 import { isAllSame, uniqueBy } from '../../utils/array';
 import { lineChart3 } from './line3';
 import { getPixel } from '../../utils/draw';
+import { lineChart4 } from './line4';
 
 type DrawTextOptions = {
   text: RangeScalar;
@@ -236,7 +237,7 @@ export const lineChart: ChartSetupFunction = (
   data: ChartData,
   options: ChartOptions = defaultLineChartOptions,
 ): ChartUpdateFunction => {
-
+  return lineChart4(app, data, options);
 //  return lineChart3(app, data, options);
   
   let tooltipPos = app.mouse.clone();

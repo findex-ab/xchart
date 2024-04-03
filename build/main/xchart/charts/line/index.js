@@ -34,6 +34,7 @@ const is_1 = require("../../utils/is");
 const hash_1 = require("../../utils/hash");
 const array_1 = require("../../utils/array");
 const draw_1 = require("../../utils/draw");
+const line4_1 = require("./line4");
 // draw line from A to B
 const drawLine = (ctx, a, b, color = 'black', thick = 1) => {
     ctx.save();
@@ -171,6 +172,7 @@ const measureText = (ctx, options) => {
     return m;
 };
 const lineChart = (app, data, options = types_1.defaultLineChartOptions) => {
+    return (0, line4_1.lineChart4)(app, data, options);
     //  return lineChart3(app, data, options);
     let tooltipPos = app.mouse.clone();
     let tooltipPosPrev = tooltipPos.clone();

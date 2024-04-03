@@ -186,6 +186,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       const actions = app.actionQueue.filter(action => action.instanceUid === instance.uid);
       const proceed = !!actions.find(action => action.type === EActionType.UPDATE);
 
+
       if (instance.renderCount >= 60 && instance.config.onlyActiveWhenMouseOver && !proceed) {
         const rect = instance.canvas.getBoundingClientRect();
         const bounds: AABB = {
@@ -379,12 +380,11 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
 
     const container = instance.config.container || cfg.container;
 
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("unable to get context");
 
     
     const tooltip: XElement<VisdTooltipProps, VisdTooltipProps> = Tooltip.call({ position: VEC2(app.mouse.x, app.mouse.y), opacity: 1.0, uid: instance.uid }) as XElement<VisdTooltipProps, VisdTooltipProps>;
-
 
     const inst: ChartInstance = xReactive({
       ...instance,
@@ -417,6 +417,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       xel: (() => {
         const xel: XElement = X<{ instance: ChartInstance }>('div', {
           onMount(_self) {
+            console.log('mounted');
             const old = app.instances.find((inst) => inst.uid === instance.uid);
 
             if (old) {

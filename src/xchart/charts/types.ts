@@ -1,9 +1,11 @@
+import { ColorStop } from "../types/colorStop";
 import { Range, RangeScalar } from "../types/range";
 import { Vector } from "../utils/vector";
 import { ChartInstance, Visd } from "../visd";
 
 export type ChartData = {
   values?: number[];
+  dates?: Date[];
   labels?: string[];
   colors?: string[];
 };
@@ -65,6 +67,7 @@ export type ChartOptions = {
   xAxis?: ChartAxis;
   yAxis?: ChartAxis;
   colors?: string[];
+  fillGradient?: ColorStop[];
   smoothPath?: boolean;
   fontSize?: number | string;
   callback?: (instance: ChartInstance, key: RangeScalar, value: number, index: number) => void;

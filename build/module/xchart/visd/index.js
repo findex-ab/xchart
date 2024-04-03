@@ -208,7 +208,7 @@ const createApp = (cfg) => {
         const sizes = computeSizes(instance.config.resolution, instance.config.size, instance.config);
         const canvas = createCanvas(sizes.resolution, sizes.size);
         const container = instance.config.container || cfg.container;
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        const ctx = canvas.getContext("2d");
         if (!ctx)
             throw new Error("unable to get context");
         const tooltip = Tooltip.call({ position: VEC2(app.mouse.x, app.mouse.y), opacity: 1.0, uid: instance.uid });
@@ -243,6 +243,7 @@ const createApp = (cfg) => {
             xel: (() => {
                 const xel = X('div', {
                     onMount(_self) {
+                        console.log('mounted');
                         const old = app.instances.find((inst) => inst.uid === instance.uid);
                         if (old) {
                             old.renderCount = 0;

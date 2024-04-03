@@ -22,155 +22,66 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ONE_YEAR = exports.ONE_MONTH = exports.ONE_WEEK = exports.ONE_DAY = exports.ONE_HOUR = exports.ONE_MINUTE = void 0;
 const xel_1 = require("xel");
 const xchart_1 = require("../xchart");
 const fns = __importStar(require("date-fns"));
-const data_json_1 = __importDefault(require("../data/data.json"));
-exports.ONE_MINUTE = 1000 * 60;
-exports.ONE_HOUR = exports.ONE_MINUTE * 60;
-exports.ONE_DAY = exports.ONE_HOUR * 24;
-exports.ONE_WEEK = exports.ONE_DAY * 7;
-exports.ONE_MONTH = exports.ONE_WEEK * 4;
-exports.ONE_YEAR = exports.ONE_MONTH * 12;
-function mergePerformanceData(data) {
-    const groupedByDate = {};
-    // Group items by date
-    data.forEach((item) => {
-        // Convert the date to a string to use as a key
-        const dateKey = new Date(item.date).toISOString().split('T')[0];
-        if (!groupedByDate[dateKey]) {
-            groupedByDate[dateKey] = [];
-        }
-        groupedByDate[dateKey].push(item);
-    });
-    // Merge items by summing their values
-    const mergedData = Object.keys(groupedByDate).map((date) => {
-        const sum = groupedByDate[date].reduce((acc, curr) => acc + curr.accMonetaryPerf, 0);
-        return {
-            date: new Date(date),
-            accMonetaryPerf: sum,
-        };
-    });
-    return mergedData;
-}
-const data = data_json_1.default;
-const N = 60;
-const FREQ = 2.3;
-const randomDate = (seed) => {
-    const r1 = (0, xchart_1.noise)(seed);
-    seed += 23.8125;
-    const r2 = (0, xchart_1.noise)(seed);
-    seed += r1 + 11.2191;
-    const r3 = (0, xchart_1.noise)(seed);
-    seed += r3 + 6.44442;
-    const year = Math.round((0, xchart_1.lerp)(1999, 2024, r1, true));
-    const month = Math.round((0, xchart_1.lerp)(1, 12, r2, true));
-    const day = Math.floor((0, xchart_1.lerp)(1, 31, r3, true));
-    const str = `${year}-${month}-${day}`;
-    return new Date(str);
+const randomItem = (seed) => {
+    const date = new Date(new Date().getTime() + 50000000 * seed);
+    return {
+        value: ((0, xchart_1.noise)(seed) * 1000) + 500 * ((0, xchart_1.noise)((seed + 3.39182) * 2)),
+        date: date,
+    };
 };
-const randomValue = (seed, min = 0, max = 1) => {
-    return (0, xchart_1.lerp)(min, max, (0, xchart_1.noise)(seed));
-};
+const N = 500;
+const F = 10;
+const data = (0, xchart_1.range)(N)
+    .map((i) => randomItem((i / N) * F))
+    .sort((a, b) => fns.compareAsc(a.date, b.date));
+const SIZE = (0, xchart_1.VEC2)(640, 480).scale(1.6);
+const visd = (0, xchart_1.VisdApp)({
+    container: document.body,
+});
 const App = (0, xel_1.X)('div', {
     style: {
         width: '100vw',
         height: '100vh',
-        overflow: 'hidden',
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
     },
-    render() {
-        const vis = (0, xchart_1.VisdApp)({
-            container: document.body,
-        });
-        const size = (0, xchart_1.VEC2)(640, 480).scale(1.);
-        const resolution = size.scale(1.);
-        const sortedData = mergePerformanceData(data).sort((a, b) => {
-            return new Date(a.date).getTime() - new Date(b.date).getTime();
-        });
-        const dates = (0, xchart_1.range)(200); //getDatesBetween(new Date('2024-01-01'), new Date(), ONE_DAY);
-        const values = dates.map((i) => {
-            return (0, xchart_1.noise)(((i / dates.length) * 6) + 2.382185 * 1.5948872);
-        });
-        //const dataDates = sortedData.map((it) => new Date(it.date));
-        //const dataValues = sortedData.map((it) => it.accMonetaryPerf);
-        //
-        //const data2:DataType[] = range(N).map(i => {
-        //  const u1 =         (i / N) * FREQ;
-        //  const u2 = (u1 + 4.482185) * FREQ; 
-        //  return {
-        //    date: randomDate(u1),
-        //    value: 100*randomValue(u2)
-        //  }
-        //}).sort((a, b) => fns.compareAsc(a.date, b.date));
-        //const values = data2.map(d => d.value);
-        //const dates = data2.map(d => d.date);
-        const instance = vis.insert({
-            uid: '5492',
-            config: {
-                onlyActiveWhenMouseOver: true,
-                fitContainer: true,
-                resolution: resolution,
-                size: size,
-                minTooltipOpacity: 1,
-                sizeClamp: {
-                    min: size,
-                    max: resolution,
-                },
+    children: [
+        (0, xel_1.X)('div', {
+            style: {
+                width: '500px',
+                height: '500px'
             },
-            fun: vis.charts.line({
-                values: values,
-                //labels: items.value.map(t => t.date.toString())
-            }, {
-                autoFit: false,
-                drawLabels: true,
-                drawPoints: true,
-                fitContainer: true,
-                padding: 0.0003,
-                smoothPath: true,
-                fontSize: '1rem',
-                thick: 4,
-                xAxis: {
-                    font: '12px arial',
-                    format: (x) => {
-                        return fns.format(x, 'H:m:s MMM E yy');
+            render() {
+                const chart = visd.insert({
+                    uid: 'mychart',
+                    config: {
+                        size: SIZE,
+                        resolution: SIZE.scale(0.5),
+                        aspectRatio: (0, xchart_1.VEC2)(16, 9)
                     },
-                    range: dates
-                    //ticks: 6
-                },
-                yAxis: {
-                    range: values
-                },
-                callback: (instance, key, value, index) => {
-                    instance.setTooltipBody((0, xel_1.X)('div', {
-                        render() {
-                            return (0, xel_1.X)('div', {
-                                innerText: `${value}`,
-                            });
-                        },
-                    }));
-                },
-            }),
-        });
-        vis.start();
-        return (0, xel_1.X)('div', {
-            children: [
-                (0, xel_1.X)('div', {
-                    style: {
-                        width: `${size.x}px`,
-                        height: `${size.y}px`
-                    },
-                    children: [instance.xel],
-                }),
-            ],
-        });
-    },
+                    fun: visd.charts.line({
+                        values: data.map((it) => it.value),
+                        dates: data.map((it) => it.date),
+                    }, {
+                        callback(instance, key, value, index) {
+                            instance.setTooltipBody((0, xel_1.X)('div', {
+                                children: [
+                                    (0, xel_1.X)('p', { innerText: fns.format(key, 'dd MMM, yyy') }),
+                                    (0, xel_1.X)('p', { innerText: value })
+                                ]
+                            }));
+                        }
+                    }),
+                });
+                visd.start();
+                return chart.xel;
+            },
+        }),
+    ],
 });
 (0, xel_1.mount)(App, { target: document.getElementById('app') });

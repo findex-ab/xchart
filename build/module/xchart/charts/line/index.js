@@ -8,6 +8,7 @@ import { isNumber, isString } from '../../utils/is';
 import { hexToUint32, nthByte } from '../../utils/hash';
 import { isAllSame, uniqueBy } from '../../utils/array';
 import { getPixel } from '../../utils/draw';
+import { lineChart4 } from './line4';
 // draw line from A to B
 const drawLine = (ctx, a, b, color = 'black', thick = 1) => {
     ctx.save();
@@ -145,6 +146,7 @@ const measureText = (ctx, options) => {
     return m;
 };
 export const lineChart = (app, data, options = defaultLineChartOptions) => {
+    return lineChart4(app, data, options);
     //  return lineChart3(app, data, options);
     let tooltipPos = app.mouse.clone();
     let tooltipPosPrev = tooltipPos.clone();
