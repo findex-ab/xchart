@@ -20,7 +20,7 @@ const drawPoint = (ctx, point, color = 'red', radius = 10) => {
 const lineChart4 = (app, data, options = types_1.defaultLineChartOptions) => {
     let prevTooltipPos = app.mouse;
     return (instance) => {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         const canvas = instance.canvas;
         const ctx = instance.ctx;
         const rect = instance.canvas.getBoundingClientRect();
@@ -55,11 +55,11 @@ const lineChart4 = (app, data, options = types_1.defaultLineChartOptions) => {
         const yAxisLabelCount = ((_a = options.yAxis) === null || _a === void 0 ? void 0 : _a.ticks) || 5;
         const yAxisInterval = valueRange / (yAxisLabelCount - 1);
         for (let i = 0; i < yAxisLabelCount; i++) {
-            const label = (minValue + yAxisInterval * i).toFixed(2);
+            const label = ((_b = options === null || options === void 0 ? void 0 : options.yAxis) === null || _b === void 0 ? void 0 : _b.format) ? options.yAxis.format((minValue + yAxisInterval * i)) : (minValue + yAxisInterval * i).toFixed(2);
             const y = padding +
                 (plotHeight / (yAxisLabelCount - 1)) * (yAxisLabelCount - i - 1);
-            ctx.fillStyle = ((_b = options.xAxis) === null || _b === void 0 ? void 0 : _b.color) || 'black';
-            ctx.font = ((_c = options === null || options === void 0 ? void 0 : options.xAxis) === null || _c === void 0 ? void 0 : _c.font) || '';
+            ctx.fillStyle = ((_c = options.yAxis) === null || _c === void 0 ? void 0 : _c.color) || 'black';
+            ctx.font = ((_d = options === null || options === void 0 ? void 0 : options.yAxis) === null || _d === void 0 ? void 0 : _d.font) || '';
             ctx.fillText(label, 0, y - 4);
             // grid lines
             ctx.beginPath();
@@ -71,14 +71,14 @@ const lineChart4 = (app, data, options = types_1.defaultLineChartOptions) => {
             ctx.strokeStyle = '#000'; // Reset to black for other drawings
         }
         // X-axis labels
-        const xAxisLabelCount = Math.min(uniqueDates.length, ((_d = options.xAxis) === null || _d === void 0 ? void 0 : _d.ticks) || 5); // Limit the number of labels to avoid clutter
+        const xAxisLabelCount = Math.min(uniqueDates.length, ((_e = options.xAxis) === null || _e === void 0 ? void 0 : _e.ticks) || 5); // Limit the number of labels to avoid clutter
         for (let i = 0; i < xAxisLabelCount; i++) {
             const labelIndex = (0, etc_1.clamp)(Math.floor(((uniqueDates.length - 1) / (xAxisLabelCount - 1)) * i), 0, uniqueDates.length - 1);
             const xshift = (0, etc_1.lerp)((i / xAxisLabelCount) * uniqueDates.length, labelIndex, 0.5);
             const label = uniqueDates[labelIndex];
             const x = padding + paddingLeft + xshift * (plotWidth / (uniqueDates.length - 1));
-            ctx.fillStyle = ((_e = options.yAxis) === null || _e === void 0 ? void 0 : _e.color) || 'black';
-            ctx.font = ((_f = options === null || options === void 0 ? void 0 : options.yAxis) === null || _f === void 0 ? void 0 : _f.font) || '';
+            ctx.fillStyle = ((_f = options.xAxis) === null || _f === void 0 ? void 0 : _f.color) || 'black';
+            ctx.font = ((_g = options === null || options === void 0 ? void 0 : options.xAxis) === null || _g === void 0 ? void 0 : _g.font) || '';
             ctx.fillText(label, x - 20, canvas.height - 5); // Adjust label positioning as needed
         }
         const computePoints = () => {
@@ -94,22 +94,38 @@ const lineChart4 = (app, data, options = types_1.defaultLineChartOptions) => {
             return points;
         };
         const points = computePoints();
-        ctx.beginPath();
-        ctx.moveTo(...points[0].xy); // Start at the first point on the X-axis
-        for (let i = 1; i < points.length; i++) {
-            const p = points[i];
-            ctx.lineTo(...p.xy);
+        if (options === null || options === void 0 ? void 0 : options.fillGradient) {
+            ctx.beginPath();
+            ctx.moveTo(...points[0].xy); // Start at the first point on the X-axis
+            for (let i = 1; i < points.length; i++) {
+                const p = points[i];
+                ctx.lineTo(...p.xy);
+            }
+            ctx.closePath(); // Close the path to connect back to the start point
+            const fillGrad = ctx.createLinearGradient(0, 0, 0, plotHeight * 2);
+            const stops = (options === null || options === void 0 ? void 0 : options.fillGradient) || [
+                { stop: 0, color: 'rgba(255, 0, 0, 0)' },
+                { stop: 1, color: 'rgba(255, 0, 0, 1)' },
+            ];
+            stops.forEach((s) => fillGrad.addColorStop(s.stop, s.color));
+            ctx.fillStyle = fillGrad; //'rgba(135, 206, 235, 0.5)';
+            ctx.fill();
         }
-        ctx.closePath(); // Close the path to connect back to the start point
-        const fillGrad = ctx.createLinearGradient(0, 0, 0, plotHeight * 2);
-        const stops = (options === null || options === void 0 ? void 0 : options.fillGradient) || [
-            { stop: 0, color: 'rgba(255, 0, 0, 0)' },
-            { stop: 1, color: 'rgba(255, 0, 0, 1)' },
-        ];
-        stops.forEach((s) => fillGrad.addColorStop(s.stop, s.color));
+        else {
+            for (let i = 1; i < points.length - 1; i++) {
+                const p1 = points[i];
+                const p2 = points[Math.min(i + 1, points.length - 1)];
+                ctx.beginPath();
+                ctx.moveTo(...p1.xy);
+                ctx.lineTo(...p2.xy);
+                ctx.closePath(); // Close the path to connect back to the start point
+                ctx.lineWidth = (options === null || options === void 0 ? void 0 : options.lineWidth) || 1;
+                ctx.strokeStyle = (options === null || options === void 0 ? void 0 : options.lineColor) || 'black';
+                ctx.stroke();
+                ctx.lineWidth = 1;
+            }
+        }
         // Fill the area under the line
-        ctx.fillStyle = fillGrad; //'rgba(135, 206, 235, 0.5)';
-        ctx.fill();
         //ctx.stroke();
         const getIndexAtX = (x, xMin) => {
             const remapped = x - xMin - (padding + paddingLeft); // Adjust for padding

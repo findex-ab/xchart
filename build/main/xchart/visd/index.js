@@ -106,7 +106,21 @@ const createApp = (cfg) => {
             const sizes = computeSizes(resolution, size, instance.config, instance);
             instance.canvas.style.width = `${sizes.size.x}px`; //`100%`;
             instance.canvas.style.height = `${sizes.size.y}px`; //`100%`;
-            if (instance.config.responsive && instance.xel && instance.xel.el) {
+            //
+            if (instance.config.fullWidth && instance.xel && instance.xel.el) {
+                const el = (instance.xel.el);
+                const elRect = el.getBoundingClientRect();
+                //const elRectParent = parent.getBoundingClientRect();
+                let height = elRect.height;
+                instance.canvas.style.width = `100%`;
+                instance.canvas.style.height = `100%`;
+                instance.canvas.style.maxWidth = ``;
+                instance.canvas.style.maxHeight = ``;
+                const canvasRect = instance.canvas.getBoundingClientRect();
+                instance.size.x = canvasRect.width;
+                instance.size.y = canvasRect.height;
+            }
+            else if (instance.config.responsive && instance.xel && instance.xel.el) {
                 const el = (instance.xel.el);
                 const parent = (instance.xel.el.parentElement || instance.xel.el);
                 const elRect = el.getBoundingClientRect();
@@ -231,6 +245,9 @@ const createApp = (cfg) => {
                 inst.active = true;
             }, xel: (() => {
                 const xel = (0, xel_1.X)('div', {
+                    style: {
+                        width: '100%'
+                    },
                     onMount(_self) {
                         console.log('mounted');
                         const old = app.instances.find((inst) => inst.uid === instance.uid);
@@ -244,9 +261,7 @@ const createApp = (cfg) => {
                             initCfg.onMount(old || inst);
                         }
                     },
-                    render(_props, _state) {
-                        return (0, xel_1.X)('div', { children: [canvas, tooltip] });
-                    }
+                    children: [canvas, tooltip]
                 });
                 return xel;
             })() }));

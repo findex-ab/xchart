@@ -17,6 +17,7 @@ export interface VisdInstanceConfig {
     aspectRatio?: Vector;
     fitContainer?: boolean;
     responsive?: boolean;
+    fullWidth?: boolean;
     sizeClamp?: {
         min: Vector;
         max: Vector;

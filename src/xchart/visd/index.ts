@@ -41,6 +41,7 @@ export interface VisdInstanceConfig {
   aspectRatio?: Vector;
   fitContainer?: boolean;
   responsive?: boolean;
+  fullWidth?: boolean;
   sizeClamp?: { min: Vector, max: Vector };
   size?: Vector;
   scale?: number;
@@ -234,8 +235,22 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       
       instance.canvas.style.width = `${sizes.size.x}px`;//`100%`;
       instance.canvas.style.height = `${sizes.size.y}px`;//`100%`;
+      //
+      if (instance.config.fullWidth && instance.xel && instance.xel.el) {
+        const el = (instance.xel.el) as HTMLElement;
+        const elRect = el.getBoundingClientRect();
+        //const elRectParent = parent.getBoundingClientRect();
+        let height = elRect.height;
 
-      if (instance.config.responsive && instance.xel && instance.xel.el) {
+        instance.canvas.style.width = `100%`;
+        instance.canvas.style.height = `100%`;
+        instance.canvas.style.maxWidth = ``;
+        instance.canvas.style.maxHeight = ``;
+
+        const canvasRect = instance.canvas.getBoundingClientRect();
+        instance.size.x = canvasRect.width;
+        instance.size.y = canvasRect.height;
+      } else if (instance.config.responsive && instance.xel && instance.xel.el) {
         const el = (instance.xel.el) as HTMLElement;
         const parent = (instance.xel.el.parentElement || instance.xel.el) as HTMLElement;
         const elRect = el.getBoundingClientRect();
@@ -416,6 +431,9 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       },
       xel: (() => {
         const xel: XElement = X<{ instance: ChartInstance }>('div', {
+          style: {
+            width: '100%'
+          },
           onMount(_self) {
             console.log('mounted');
             const old = app.instances.find((inst) => inst.uid === instance.uid);
@@ -430,9 +448,7 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
               initCfg.onMount(old || inst);
             }
           },
-          render(_props, _state) {
-            return X('div', { children: [ canvas, tooltip ] })
-          }
+          children: [ canvas, tooltip ]
         });
 
         return xel;

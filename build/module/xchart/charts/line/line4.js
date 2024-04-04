@@ -51,11 +51,11 @@ export const lineChart4 = (app, data, options = defaultLineChartOptions) => {
         const yAxisLabelCount = options.yAxis?.ticks || 5;
         const yAxisInterval = valueRange / (yAxisLabelCount - 1);
         for (let i = 0; i < yAxisLabelCount; i++) {
-            const label = (minValue + yAxisInterval * i).toFixed(2);
+            const label = options?.yAxis?.format ? options.yAxis.format((minValue + yAxisInterval * i)) : (minValue + yAxisInterval * i).toFixed(2);
             const y = padding +
                 (plotHeight / (yAxisLabelCount - 1)) * (yAxisLabelCount - i - 1);
-            ctx.fillStyle = options.xAxis?.color || 'black';
-            ctx.font = options?.xAxis?.font || '';
+            ctx.fillStyle = options.yAxis?.color || 'black';
+            ctx.font = options?.yAxis?.font || '';
             ctx.fillText(label, 0, y - 4);
             // grid lines
             ctx.beginPath();
@@ -73,8 +73,8 @@ export const lineChart4 = (app, data, options = defaultLineChartOptions) => {
             const xshift = lerp((i / xAxisLabelCount) * uniqueDates.length, labelIndex, 0.5);
             const label = uniqueDates[labelIndex];
             const x = padding + paddingLeft + xshift * (plotWidth / (uniqueDates.length - 1));
-            ctx.fillStyle = options.yAxis?.color || 'black';
-            ctx.font = options?.yAxis?.font || '';
+            ctx.fillStyle = options.xAxis?.color || 'black';
+            ctx.font = options?.xAxis?.font || '';
             ctx.fillText(label, x - 20, canvas.height - 5); // Adjust label positioning as needed
         }
         const computePoints = () => {
@@ -90,22 +90,38 @@ export const lineChart4 = (app, data, options = defaultLineChartOptions) => {
             return points;
         };
         const points = computePoints();
-        ctx.beginPath();
-        ctx.moveTo(...points[0].xy); // Start at the first point on the X-axis
-        for (let i = 1; i < points.length; i++) {
-            const p = points[i];
-            ctx.lineTo(...p.xy);
+        if (options?.fillGradient) {
+            ctx.beginPath();
+            ctx.moveTo(...points[0].xy); // Start at the first point on the X-axis
+            for (let i = 1; i < points.length; i++) {
+                const p = points[i];
+                ctx.lineTo(...p.xy);
+            }
+            ctx.closePath(); // Close the path to connect back to the start point
+            const fillGrad = ctx.createLinearGradient(0, 0, 0, plotHeight * 2);
+            const stops = options?.fillGradient || [
+                { stop: 0, color: 'rgba(255, 0, 0, 0)' },
+                { stop: 1, color: 'rgba(255, 0, 0, 1)' },
+            ];
+            stops.forEach((s) => fillGrad.addColorStop(s.stop, s.color));
+            ctx.fillStyle = fillGrad; //'rgba(135, 206, 235, 0.5)';
+            ctx.fill();
         }
-        ctx.closePath(); // Close the path to connect back to the start point
-        const fillGrad = ctx.createLinearGradient(0, 0, 0, plotHeight * 2);
-        const stops = options?.fillGradient || [
-            { stop: 0, color: 'rgba(255, 0, 0, 0)' },
-            { stop: 1, color: 'rgba(255, 0, 0, 1)' },
-        ];
-        stops.forEach((s) => fillGrad.addColorStop(s.stop, s.color));
+        else {
+            for (let i = 1; i < points.length - 1; i++) {
+                const p1 = points[i];
+                const p2 = points[Math.min(i + 1, points.length - 1)];
+                ctx.beginPath();
+                ctx.moveTo(...p1.xy);
+                ctx.lineTo(...p2.xy);
+                ctx.closePath(); // Close the path to connect back to the start point
+                ctx.lineWidth = options?.lineWidth || 1;
+                ctx.strokeStyle = options?.lineColor || 'black';
+                ctx.stroke();
+                ctx.lineWidth = 1;
+            }
+        }
         // Fill the area under the line
-        ctx.fillStyle = fillGrad; //'rgba(135, 206, 235, 0.5)';
-        ctx.fill();
         //ctx.stroke();
         const getIndexAtX = (x, xMin) => {
             const remapped = x - xMin - (padding + paddingLeft); // Adjust for padding

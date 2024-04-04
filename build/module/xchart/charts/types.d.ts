@@ -61,6 +61,8 @@ export type ChartOptions = {
     yAxis?: ChartAxis;
     colors?: string[];
     fillGradient?: ColorStop[];
+    lineColor?: string;
+    lineWidth?: number;
     smoothPath?: boolean;
     fontSize?: number | string;
     callback?: (instance: ChartInstance, key: RangeScalar, value: number, index: number) => void;
