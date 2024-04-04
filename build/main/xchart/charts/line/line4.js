@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.lineChart4 = void 0;
 const constants_1 = require("../../constants");
+const array_1 = require("../../utils/array");
 const etc_1 = require("../../utils/etc");
 const vector_1 = require("../../utils/vector");
 const types_1 = require("./types");
@@ -32,6 +33,7 @@ const lineChart4 = (app, data, options = types_1.defaultLineChartOptions) => {
         // Extract values for easier processing
         const values = data.values || []; //data.map((item) => item.value);
         const dates = (data.dates || []).map((it) => { var _a; return ((_a = options.xAxis) === null || _a === void 0 ? void 0 : _a.format) ? options.xAxis.format(it) : it.toLocaleDateString(); }); //data.map((item) => item.date.toLocaleDateString());
+        const uniqueDates = (0, array_1.unique)(dates);
         if (values.length <= 0 || dates.length <= 0)
             return;
         const maxValue = Math.max(...values);
@@ -69,12 +71,12 @@ const lineChart4 = (app, data, options = types_1.defaultLineChartOptions) => {
             ctx.strokeStyle = '#000'; // Reset to black for other drawings
         }
         // X-axis labels
-        const xAxisLabelCount = Math.min(dates.length, ((_d = options.xAxis) === null || _d === void 0 ? void 0 : _d.ticks) || 5); // Limit the number of labels to avoid clutter
+        const xAxisLabelCount = Math.min(uniqueDates.length, ((_d = options.xAxis) === null || _d === void 0 ? void 0 : _d.ticks) || 5); // Limit the number of labels to avoid clutter
         for (let i = 0; i < xAxisLabelCount; i++) {
-            const labelIndex = (0, etc_1.clamp)(Math.floor(((dates.length - 1) / (xAxisLabelCount - 1)) * i), 0, dates.length - 1);
-            const xshift = (0, etc_1.lerp)((i / xAxisLabelCount) * dates.length, labelIndex, 0.5);
-            const label = dates[labelIndex];
-            const x = padding + paddingLeft + xshift * (plotWidth / (dates.length - 1));
+            const labelIndex = (0, etc_1.clamp)(Math.floor(((uniqueDates.length - 1) / (xAxisLabelCount - 1)) * i), 0, uniqueDates.length - 1);
+            const xshift = (0, etc_1.lerp)((i / xAxisLabelCount) * uniqueDates.length, labelIndex, 0.5);
+            const label = uniqueDates[labelIndex];
+            const x = padding + paddingLeft + xshift * (plotWidth / (uniqueDates.length - 1));
             ctx.fillStyle = ((_e = options.yAxis) === null || _e === void 0 ? void 0 : _e.color) || 'black';
             ctx.font = ((_f = options === null || options === void 0 ? void 0 : options.yAxis) === null || _f === void 0 ? void 0 : _f.font) || '';
             ctx.fillText(label, x - 20, canvas.height - 5); // Adjust label positioning as needed

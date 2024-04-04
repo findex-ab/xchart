@@ -1,4 +1,5 @@
 import { TAU } from '../../constants';
+import { unique } from '../../utils/array';
 import { clamp, fract, lerp, remap, smoothstep } from '../../utils/etc';
 import { VEC2, Vector } from '../../utils/vector';
 import { Visd } from '../../visd';
@@ -49,7 +50,7 @@ export const lineChart4: ChartSetupFunction = (
     // Extract values for easier processing
     const values = data.values || []; //data.map((item) => item.value);
     const dates = (data.dates || []).map((it) => options.xAxis?.format ? options.xAxis.format(it) : it.toLocaleDateString()); //data.map((item) => item.date.toLocaleDateString());
-
+    const uniqueDates = unique(dates);
     if (values.length <= 0 || dates.length <= 0) return;
 
     const maxValue = Math.max(...values);
@@ -94,15 +95,15 @@ export const lineChart4: ChartSetupFunction = (
     }
 
     // X-axis labels
-    const xAxisLabelCount = Math.min(dates.length, options.xAxis?.ticks || 5); // Limit the number of labels to avoid clutter
+    const xAxisLabelCount = Math.min(uniqueDates.length, options.xAxis?.ticks || 5); // Limit the number of labels to avoid clutter
     for (let i = 0; i < xAxisLabelCount; i++) {
       const labelIndex = clamp(Math.floor(
-        ((dates.length - 1) / (xAxisLabelCount - 1)) * i,
-      ), 0, dates.length-1);
+        ((uniqueDates.length - 1) / (xAxisLabelCount - 1)) * i,
+      ), 0, uniqueDates.length-1);
 
-      const xshift = lerp((i / xAxisLabelCount) * dates.length, labelIndex, 0.5);
-      const label = dates[labelIndex];
-      const x = padding + paddingLeft + xshift * (plotWidth / (dates.length - 1));
+      const xshift = lerp((i / xAxisLabelCount) * uniqueDates.length, labelIndex, 0.5);
+      const label = uniqueDates[labelIndex];
+      const x = padding + paddingLeft + xshift * (plotWidth / (uniqueDates.length - 1));
 
       ctx.fillStyle = options.yAxis?.color || 'black';
       ctx.font = options?.yAxis?.font || '';

@@ -1,4 +1,5 @@
 import { TAU } from '../../constants';
+import { unique } from '../../utils/array';
 import { clamp, lerp } from '../../utils/etc';
 import { VEC2 } from '../../utils/vector';
 import { defaultLineChartOptions } from './types';
@@ -28,6 +29,7 @@ export const lineChart4 = (app, data, options = defaultLineChartOptions) => {
         // Extract values for easier processing
         const values = data.values || []; //data.map((item) => item.value);
         const dates = (data.dates || []).map((it) => options.xAxis?.format ? options.xAxis.format(it) : it.toLocaleDateString()); //data.map((item) => item.date.toLocaleDateString());
+        const uniqueDates = unique(dates);
         if (values.length <= 0 || dates.length <= 0)
             return;
         const maxValue = Math.max(...values);
@@ -65,12 +67,12 @@ export const lineChart4 = (app, data, options = defaultLineChartOptions) => {
             ctx.strokeStyle = '#000'; // Reset to black for other drawings
         }
         // X-axis labels
-        const xAxisLabelCount = Math.min(dates.length, options.xAxis?.ticks || 5); // Limit the number of labels to avoid clutter
+        const xAxisLabelCount = Math.min(uniqueDates.length, options.xAxis?.ticks || 5); // Limit the number of labels to avoid clutter
         for (let i = 0; i < xAxisLabelCount; i++) {
-            const labelIndex = clamp(Math.floor(((dates.length - 1) / (xAxisLabelCount - 1)) * i), 0, dates.length - 1);
-            const xshift = lerp((i / xAxisLabelCount) * dates.length, labelIndex, 0.5);
-            const label = dates[labelIndex];
-            const x = padding + paddingLeft + xshift * (plotWidth / (dates.length - 1));
+            const labelIndex = clamp(Math.floor(((uniqueDates.length - 1) / (xAxisLabelCount - 1)) * i), 0, uniqueDates.length - 1);
+            const xshift = lerp((i / xAxisLabelCount) * uniqueDates.length, labelIndex, 0.5);
+            const label = uniqueDates[labelIndex];
+            const x = padding + paddingLeft + xshift * (plotWidth / (uniqueDates.length - 1));
             ctx.fillStyle = options.yAxis?.color || 'black';
             ctx.font = options?.yAxis?.font || '';
             ctx.fillText(label, x - 20, canvas.height - 5); // Adjust label positioning as needed
