@@ -239,13 +239,15 @@ const createApp = (cfg: VisdConfig): VisdApplication => {
       if (instance.config.fullWidth && instance.xel && instance.xel.el) {
         const el = (instance.xel.el) as HTMLElement;
         const elRect = el.getBoundingClientRect();
-        //const elRectParent = parent.getBoundingClientRect();
+        const parent = (instance.xel.el.parentElement || instance.xel.el) as HTMLElement;
+        const elRectParent = parent.getBoundingClientRect();
         let height = elRect.height;
 
         instance.canvas.style.width = `100%`;
         instance.canvas.style.height = `100%`;
+        instance.canvas.style.maxHeight = `${elRectParent.height}px`;
         instance.canvas.style.maxWidth = ``;
-        instance.canvas.style.maxHeight = ``;
+        //instance.canvas.style.maxHeight = ``;
 
         const canvasRect = instance.canvas.getBoundingClientRect();
         instance.size.x = canvasRect.width;
