@@ -1,19 +1,25 @@
-import { VEC2, VEC3 } from "../../utils/vector";
-import { defaultDonutOptions } from "./types";
-import { clamp, sgt, slt, smin, smoothstep, sum } from "../../utils/etc";
-import { ITAU } from "../../constants";
-import { hexToUint32, nthByte } from "../../utils/hash";
-import { isNumber } from "../../utils/is";
+import { VEC2, VEC3 } from '../../utils/vector';
+import { defaultDonutOptions, } from './types';
+import { clamp, sgt, slt, smin, smoothstep, sum } from '../../utils/etc';
+import { ITAU, TAU } from '../../constants';
+import { hexToUint32, nthByte } from '../../utils/hash';
+import { isNumber } from '../../utils/is';
 console.log(24);
 export const donutChart = (app, instance, data, options = defaultDonutOptions) => {
     const ctx = instance.ctx;
     const center = instance.size.scale(0.5);
     const state = {
-        activeSegment: undefined
+        activeSegment: undefined,
     };
     const padding = options.padding || defaultDonutOptions.padding || 0;
-    const colors = data.colors || ['#9CA3AF', '#1a56db', '#7e3af2', '#16bdca', '#ff8a4c'];
-    const thick = (options.thick || 1.5); //window.devicePixelRatio;
+    const colors = data.colors || [
+        '#9CA3AF',
+        '#1a56db',
+        '#7e3af2',
+        '#16bdca',
+        '#ff8a4c',
+    ];
+    const thick = options.thick || 1.5; //window.devicePixelRatio;
     const getMouseAngle = (mouse, center) => {
         const delta = mouse.sub(center);
         const angle = Math.atan2(delta.y, delta.x);
@@ -23,20 +29,11 @@ export const donutChart = (app, instance, data, options = defaultDonutOptions) =
         const mouseAngle = getMouseAngle(instance.mouse, center);
         return segments.find((segment) => mouseAngle >= segment.startAngle && mouseAngle <= segment.endAngle);
     };
-    const getSegmentDistances = (seg) => {
-        const mouseAngle = getMouseAngle(instance.mouse, center);
-        const dist = seg.pos.distance(instance.mouse);
-        const a = mouseAngle - seg.startAngle;
-        const b = seg.endAngle - mouseAngle;
-        return { mouseAngle, dist, a, b };
-    };
     const getClosestSegment = (segments) => {
         const mouseAngle = getMouseAngle(instance.mouse, center);
         let closest = segments[0];
         let minDist = 99999999.0;
         for (const seg of segments) {
-            const a = mouseAngle - seg.startAngle;
-            const b = seg.endAngle - mouseAngle;
             const dist = seg.pos.distance(instance.mouse);
             if (dist < minDist &&
                 ((mouseAngle >= seg.startAngle && mouseAngle <= seg.endAngle) ||
@@ -58,7 +55,11 @@ export const donutChart = (app, instance, data, options = defaultDonutOptions) =
     };
     const total = sum(data.values);
     let currentAngle = -0.5 * Math.PI;
-    const radius = (options.radius ? options.radius : Math.min(ctx.canvas.width, ctx.canvas.height)) / 2 - padding;
+    const radius = (options.radius
+        ? options.radius
+        : Math.min(ctx.canvas.width, ctx.canvas.height)) /
+        2 -
+        padding;
     const segments = data.values.map((item, i) => {
         const fraction = item / total;
         const sliceAngle = Math.max(fraction * 2 * Math.PI, ITAU);
@@ -79,49 +80,65 @@ export const donutChart = (app, instance, data, options = defaultDonutOptions) =
             endAngle: angle + sliceAngle,
             index: i,
             fraction,
-            color: colors[i % colors.length]
+            color: colors[i % colors.length],
         };
     });
     const hoveredSegment = getHoveredSegment(segments);
     state.activeSegment = hoveredSegment;
-    if (hoveredSegment && options.callback && hoveredSegment.value && isNumber(hoveredSegment.value)) {
-        options.callback(instance, 0, hoveredSegment.value, hoveredSegment.index);
+    if (hoveredSegment &&
+        options.callback &&
+        hoveredSegment.value &&
+        isNumber(hoveredSegment.value)) {
+        options.callback(instance, 0, hoveredSegment.value, segments.length === 1 ? 0 : hoveredSegment.index);
     }
-    segments.forEach(function (p, i) {
-        const { sliceAngle, startAngle, endAngle, angle, color } = p;
+    if (segments.length <= 1) {
         ctx.beginPath();
         ctx.moveTo(center.x, center.y);
-        ctx.arc(center.x, center.y, radius, angle, angle + sliceAngle);
+        ctx.arc(center.x, center.y, radius, 0, TAU);
         ctx.closePath();
+        const color = 'rgb(229, 231, 235)';
         ctx.fillStyle = color;
-        const c = hexToUint32(color);
-        const B = nthByte(c, 1);
-        const G = nthByte(c, 2);
-        const R = nthByte(c, 3);
-        const rgb = VEC3(R, G, B).scale(1.0 / 255.0);
-        const targetRgb = rgb
-            .add(VEC3(rgb.luma(), rgb.luma(), rgb.luma()))
-            .run((v) => Math.pow(v, 1.0 / 2.2)).lerp(rgb, 0.8);
-        const mouse = instance.mouse;
-        const mangle = getMouseAngle(mouse, center);
-        const mouseDist = mouse.distance(p.pos);
-        const s1 = clamp(smoothstep(instance.size.y * 0.5, instance.size.y * 0.01, mouseDist) +
-            0.25 * instance.invMouseDistance, 0.0, 1.0);
-        let s = smin(sgt(mangle, startAngle, 0.5), slt(mangle, endAngle, 0.5), 0.5); //(mangle >= startAngle && mangle <= endAngle) ? 1.0 : 0.0;//Math.ceil(Math.max(0.0, 1.0 - Math.abs(sliceAngle - Math.sin(TAU*Math.acos(dot))))-0.5);
-        if (segments.length <= 1) {
-            s = 0;
-            const hovered = hoveredSegment && hoveredSegment.index === i;
-            if (hovered && instance.mouse.distance(center) < instance.size.x * 0.5) {
-                s = 1.0;
-            }
-        }
-        else if (segments.length <= 2 && p.fraction < (ITAU * 0.5)) {
-            s = clamp(s + ((2.0 * (padding + p.fraction)) - mouseDist), 0.0, 1.0);
-        }
-        s *= smoothstep(instance.size.y * 0.75, instance.size.y * 0.15, mouse.distance(center) * 0.95);
-        ctx.fillStyle = rgb.lerp(targetRgb, s).scale(255.0).toRGB(3); //lerp(1.0, 1.3, s)
         ctx.fill();
-    });
+    }
+    else {
+        segments.forEach(function (p, i) {
+            const { sliceAngle, startAngle, endAngle, angle, color } = p;
+            ctx.beginPath();
+            ctx.moveTo(center.x, center.y);
+            ctx.arc(center.x, center.y, radius, angle, angle + sliceAngle);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            const c = hexToUint32(color);
+            const B = nthByte(c, 1);
+            const G = nthByte(c, 2);
+            const R = nthByte(c, 3);
+            const rgb = VEC3(R, G, B).scale(1.0 / 255.0);
+            const targetRgb = rgb
+                .add(VEC3(rgb.luma(), rgb.luma(), rgb.luma()))
+                .run((v) => Math.pow(v, 1.0 / 2.2))
+                .lerp(rgb, 0.8);
+            const mouse = instance.mouse;
+            const mangle = getMouseAngle(mouse, center);
+            const mouseDist = mouse.distance(p.pos);
+            const s1 = clamp(smoothstep(instance.size.y * 0.5, instance.size.y * 0.01, mouseDist) +
+                0.25 * instance.invMouseDistance, 0.0, 1.0);
+            let s = smin(sgt(mangle, startAngle, 0.5), slt(mangle, endAngle, 0.5), 0.5); //(mangle >= startAngle && mangle <= endAngle) ? 1.0 : 0.0;//Math.ceil(Math.max(0.0, 1.0 - Math.abs(sliceAngle - Math.sin(TAU*Math.acos(dot))))-0.5);
+            if (segments.length <= 1) {
+                s = 0;
+                const hovered = hoveredSegment && hoveredSegment.index === i;
+                if (hovered &&
+                    instance.mouse.distance(center) < instance.size.x * 0.5) {
+                    s = 1.0;
+                }
+            }
+            else if (segments.length <= 2 && p.fraction < ITAU * 0.5) {
+                s = clamp(s + (2.0 * (padding + p.fraction) - mouseDist), 0.0, 1.0);
+            }
+            s *= smoothstep(instance.size.y * 0.75, instance.size.y * 0.15, mouse.distance(center) * 0.95);
+            ctx.fillStyle = rgb.lerp(targetRgb, s).scale(255.0).toRGB(3); //lerp(1.0, 1.3, s)
+            ctx.fill();
+        });
+    }
     if (options.drawLabels) {
         segments.forEach((p, i) => {
             const { sliceAngle, textPercentage, pos } = p;
@@ -155,9 +172,8 @@ export const donutChart = (app, instance, data, options = defaultDonutOptions) =
     //ctx.fill();
     //ctx.restore();
     const updateTooltip = (instance) => {
-        const rect = instance.canvas.getBoundingClientRect();
         instance.tooltip.state.position = app.mouse; //instance.mouse.add(VEC2(rect.x, rect.y));
-        instance.tooltip.state.opacity = Math.max(instance.invMouseDistance, instance.config.minTooltipOpacity || 0);
+        instance.tooltip.state.opacity = segments.length === 1 ? 0 : Math.max(instance.invMouseDistance, instance.config.minTooltipOpacity || 0);
     };
     updateTooltip(instance);
     return state;
@@ -174,7 +190,7 @@ export const donutChart = (app, instance, data, options = defaultDonutOptions) =
 //  const state: DonutChartState = {
 //    activeSegment: undefined
 //  }
-//  
+//
 //  const padding = options.padding || defaultDonutOptions.padding || 0;
 //  const colors = data.colors || [
 //    "#9CA3AF",

@@ -1,2 +1,2 @@
-import { ChartRunFunction } from "../types";
+import { ChartRunFunction } from '../types';
 export declare const donutChart: ChartRunFunction;
