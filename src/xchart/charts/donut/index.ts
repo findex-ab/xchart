@@ -89,7 +89,7 @@ export const donutChart: ChartRunFunction = (
       2 -
     padding;
 
-  const segments: DonutSegment[] = data.values.map((item, i) => {
+  const segments: DonutSegment[] = total <= 0.0000000001 ? [] : data.values.map((item, i) => {
     const fraction = item / total;
     const sliceAngle = Math.max(fraction * 2 * Math.PI, ITAU);
     const middleAngle = currentAngle + 0.5 * sliceAngle;
@@ -118,16 +118,20 @@ export const donutChart: ChartRunFunction = (
   const hoveredSegment = getHoveredSegment(segments);
   state.activeSegment = hoveredSegment;
 
+  const needsQuirk = segments.length <= 1 || total <= 0.00000000001;
+
   if (
     hoveredSegment &&
     options.callback &&
     hoveredSegment.value &&
     isNumber(hoveredSegment.value)
   ) {
-    options.callback(instance, 0, hoveredSegment.value, segments.length === 1 ? 0 : hoveredSegment.index);
+    options.callback(instance, 0, hoveredSegment.value, needsQuirk ? 0 : hoveredSegment.index);
   }
 
-  if (segments.length <= 1) {
+
+
+  if (needsQuirk) {
     ctx.beginPath();
     ctx.moveTo(center.x, center.y);
     ctx.arc(center.x, center.y, radius, 0, TAU);
@@ -237,7 +241,7 @@ export const donutChart: ChartRunFunction = (
 
   const updateTooltip = (instance: ChartInstance) => {
     instance.tooltip.state.position = app.mouse; //instance.mouse.add(VEC2(rect.x, rect.y));
-    instance.tooltip.state.opacity = segments.length === 1 ? 0 : Math.max(
+    instance.tooltip.state.opacity = needsQuirk ? 0 : Math.max(
       instance.invMouseDistance,
       instance.config.minTooltipOpacity || 0,
     );

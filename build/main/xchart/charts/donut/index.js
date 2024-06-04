@@ -63,7 +63,7 @@ const donutChart = (app, instance, data, options = types_1.defaultDonutOptions) 
         : Math.min(ctx.canvas.width, ctx.canvas.height)) /
         2 -
         padding;
-    const segments = data.values.map((item, i) => {
+    const segments = total <= 0.0000000001 ? [] : data.values.map((item, i) => {
         const fraction = item / total;
         const sliceAngle = Math.max(fraction * 2 * Math.PI, constants_1.ITAU);
         const middleAngle = currentAngle + 0.5 * sliceAngle;
@@ -88,13 +88,14 @@ const donutChart = (app, instance, data, options = types_1.defaultDonutOptions) 
     });
     const hoveredSegment = getHoveredSegment(segments);
     state.activeSegment = hoveredSegment;
+    const needsQuirk = segments.length <= 1 || total <= 0.00000000001;
     if (hoveredSegment &&
         options.callback &&
         hoveredSegment.value &&
         (0, is_1.isNumber)(hoveredSegment.value)) {
-        options.callback(instance, 0, hoveredSegment.value, segments.length === 1 ? 0 : hoveredSegment.index);
+        options.callback(instance, 0, hoveredSegment.value, needsQuirk ? 0 : hoveredSegment.index);
     }
-    if (segments.length <= 1) {
+    if (needsQuirk) {
         ctx.beginPath();
         ctx.moveTo(center.x, center.y);
         ctx.arc(center.x, center.y, radius, 0, constants_1.TAU);
@@ -176,7 +177,7 @@ const donutChart = (app, instance, data, options = types_1.defaultDonutOptions) 
     //ctx.restore();
     const updateTooltip = (instance) => {
         instance.tooltip.state.position = app.mouse; //instance.mouse.add(VEC2(rect.x, rect.y));
-        instance.tooltip.state.opacity = segments.length === 1 ? 0 : Math.max(instance.invMouseDistance, instance.config.minTooltipOpacity || 0);
+        instance.tooltip.state.opacity = needsQuirk ? 0 : Math.max(instance.invMouseDistance, instance.config.minTooltipOpacity || 0);
     };
     updateTooltip(instance);
     return state;
